@@ -70,7 +70,6 @@ public class ElementalSpellBook : MonoBehaviour
 
         if (isFull)
         {
-            // Hide or disable Element Title text when full
             if (elementTitleText != null)
             {
                 elementTitleText.gameObject.SetActive(false);
@@ -84,7 +83,6 @@ public class ElementalSpellBook : MonoBehaviour
         }
         else
         {
-            // Enable and show Element Title text when not full
             if (elementTitleText != null)
             {
                 elementTitleText.gameObject.SetActive(true);
@@ -129,8 +127,8 @@ public class ElementalSpellBook : MonoBehaviour
                 int elecA = Random.Range(2, 10);
                 int elecAns = Random.Range(2, 10);
                 page.num1 = elecA;
-                page.num2 = elecA * elecAns;
-                page.missingAnswer = elecA * elecAns;
+                page.num2 = elecA * elecAns; // Result (e.g. 42)
+                page.missingAnswer = elecAns; // Fixed: Missing answer is elecAns (e.g. 7), NOT (42)
                 page.mathOperator = "x";
                 break;
         }
@@ -140,7 +138,6 @@ public class ElementalSpellBook : MonoBehaviour
 
     public void SubmitRuneAnswer(int playerAnswer)
     {
-        // Block answering if capacity is full
         if (shooter != null && shooter.IsElementFull(activePage.elementType))
         {
             return;

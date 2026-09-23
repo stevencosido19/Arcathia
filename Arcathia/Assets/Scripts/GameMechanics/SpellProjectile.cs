@@ -1,35 +1,57 @@
 using UnityEngine;
+using Unity.Netcode;
 
-public class SpellProjectile : MonoBehaviour
+public class SpellProjectile : NetworkBehaviour
 {
-    [Header("Settings")]
-    public ElementType elementType;
-    public float damage = 25f;
+    [Header("Projectile Settings")]
+    public float baseDamage = 20f;
     public float lifetime = 5f;
 
-    [Header("Impact Visual FX (Optional)")]
-    public GameObject impactVFX;
+    [HideInInspector]
+    public GameObject owner;
 
     private void Start()
     {
-        // Destroy projectile automatically if it misses everything
-        Destroy(gameObject, lifetime);
+        if (IsServer)
+        {
+            Destroy(gameObject, lifetime);
+        }
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnTriggerEnter(Collider other)
     {
-        // Ignore collision with the player character
-        if (collision.gameObject.CompareTag("Player"))
-            return;
+        // Only server handles damage calculations
+        if (!IsServer) return;
 
-        // Instantiate impact particles if assigned
-        if (impactVFX != null)
+        // Ignore collision with caster
+        if (owner != null && (other.gameObject == owner || other.transform.IsChildOf(owner.transform)))
         {
-            GameObject fx = Instantiate(impactVFX, transform.position, Quaternion.LookRotation(collision.contacts[0].normal));
-            Destroy(fx, 2f);
+            return;
         }
 
-        // Destroy the spell projectile on impact
-        Destroy(gameObject);
+        PlayerHealth targetHealth = other.GetComponentInParent<PlayerHealth>();
+
+        if (targetHealth != null)
+        {
+            targetHealth.TakeDamage(baseDamage);
+            DespawnAndDestroy();
+        }
+        else if (!other.isTrigger)
+        {
+            DespawnAndDestroy();
+        }
+    }
+
+    private void DespawnAndDestroy()
+    {
+        NetworkObject netObj = GetComponent<NetworkObject>();
+        if (netObj != null && netObj.IsSpawned)
+        {
+            netObj.Despawn();
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 }

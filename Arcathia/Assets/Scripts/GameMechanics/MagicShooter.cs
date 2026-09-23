@@ -1,130 +1,130 @@
 ﻿using UnityEngine;
-using TMPro;
+using Unity.Netcode;
 
-public class MagicShooter : MonoBehaviour
+public class MagicShooter : NetworkBehaviour
 {
-    [Header("Dependencies")]
-    public ElementalSpellBook spellBook;
+    [Header("Spells & Prefabs")]
+    public GameObject flamePrefab;
+    public GameObject waterPrefab;
+    public GameObject electricPrefab;
     public Transform spellSpawnPoint;
+    public float projectileSpeed = 20f;
 
-    [Header("Elemental Prefabs")]
-    public GameObject flameSpellPrefab;
-    public GameObject waterSpellPrefab;
-    public GameObject electricSpellPrefab;
+    [Header("Ammo Settings")]
+    public int maxAmmoPerElement = 10;
 
-    [Header("Independent Ammo Storage")]
-    public int maxAmmoPerElement = 9;
-    public int flameAmmo = 0;
-    public int waterAmmo = 0;
-    public int electricAmmo = 0;
+    [Header("Current Ammo Count")]
+    public int flameAmmo = 3;
+    public int waterAmmo = 3;
+    public int electricAmmo = 3;
 
-    [Header("UI References")]
-    public TextMeshProUGUI flameAmmoText;
-    public TextMeshProUGUI waterAmmoText;
-    public TextMeshProUGUI electricAmmoText;
-
-    [Header("Settings")]
-    public float projectileSpeed = 25f;
-
-    private void Start()
+    public override void OnNetworkSpawn()
     {
-        UpdateAmmoUI();
-    }
+        base.OnNetworkSpawn();
 
-    // Helper method to check if an element is at max capacity
-    public bool IsElementFull(ElementType type)
-    {
-        switch (type)
+        // Automatically bind the scene UI to this player instance if local owner
+        if (IsOwner)
         {
-            case ElementType.Flame:
-                return flameAmmo >= maxAmmoPerElement;
-            case ElementType.Water:
-                return waterAmmo >= maxAmmoPerElement;
-            case ElementType.Electric:
-                return electricAmmo >= maxAmmoPerElement;
-            default:
-                return false;
+            RuneDialController dial = FindFirstObjectByType<RuneDialController>();
+            ElementalSpellBook book = GetComponent<ElementalSpellBook>();
+
+            if (dial != null)
+            {
+                dial.BindToLocalPlayer(this, book);
+            }
         }
     }
 
-    // Called by ElementalSpellBook when a correct rune is solved
-    public void AddElementAmmo(ElementType type, int amount)
+    // --- ELEMENTAL AMMO MANAGEMENT ---
+
+    public bool IsElementFull(ElementType element)
     {
-        switch (type)
+        switch (element)
+        {
+            case ElementType.Flame: return flameAmmo >= maxAmmoPerElement;
+            case ElementType.Water: return waterAmmo >= maxAmmoPerElement;
+            case ElementType.Electric: return electricAmmo >= maxAmmoPerElement;
+            default: return false;
+        }
+    }
+
+    public void AddElementAmmo(ElementType element, int amount)
+    {
+        switch (element)
         {
             case ElementType.Flame:
-                flameAmmo = Mathf.Min(flameAmmo + amount, maxAmmoPerElement);
+                flameAmmo = Mathf.Clamp(flameAmmo + amount, 0, maxAmmoPerElement);
                 break;
             case ElementType.Water:
-                waterAmmo = Mathf.Min(waterAmmo + amount, maxAmmoPerElement);
+                waterAmmo = Mathf.Clamp(waterAmmo + amount, 0, maxAmmoPerElement);
                 break;
             case ElementType.Electric:
-                electricAmmo = Mathf.Min(electricAmmo + amount, maxAmmoPerElement);
+                electricAmmo = Mathf.Clamp(electricAmmo + amount, 0, maxAmmoPerElement);
+                break;
+        }
+    }
+
+    public void TryCastSpell(ElementType element)
+    {
+        // Only local owner can trigger spellcasting
+        if (!IsOwner) return;
+
+        bool hasAmmo = false;
+
+        switch (element)
+        {
+            case ElementType.Flame:
+                if (flameAmmo > 0) { flameAmmo--; hasAmmo = true; }
+                break;
+            case ElementType.Water:
+                if (waterAmmo > 0) { waterAmmo--; hasAmmo = true; }
+                break;
+            case ElementType.Electric:
+                if (electricAmmo > 0) { electricAmmo--; hasAmmo = true; }
                 break;
         }
 
-        UpdateAmmoUI();
+        if (hasAmmo)
+        {
+            CastSpellServerRpc(element);
+        }
     }
 
-    // Called by central CAST / Fire Button
-    public void TryCastSpell()
-    {
-        if (spellBook == null) return;
+    // --- NETWORKED SPELL SPAWNING (Netcode 1.11.4 Syntax) ---
 
-        ElementType activeElement = spellBook.CurrentElementType;
+    [Rpc(SendTo.Server)]
+    private void CastSpellServerRpc(ElementType element)
+    {
         GameObject prefabToSpawn = null;
-
-        // Check and deduct element-specific ammo
-        switch (activeElement)
+        switch (element)
         {
-            case ElementType.Flame:
-                if (flameAmmo <= 0) return;
-                flameAmmo--;
-                prefabToSpawn = flameSpellPrefab;
-                break;
-
-            case ElementType.Water:
-                if (waterAmmo <= 0) return;
-                waterAmmo--;
-                prefabToSpawn = waterSpellPrefab;
-                break;
-
-            case ElementType.Electric:
-                if (electricAmmo <= 0) return;
-                electricAmmo--;
-                prefabToSpawn = electricSpellPrefab;
-                break;
+            case ElementType.Flame: prefabToSpawn = flamePrefab; break;
+            case ElementType.Water: prefabToSpawn = waterPrefab; break;
+            case ElementType.Electric: prefabToSpawn = electricPrefab; break;
         }
 
-        UpdateAmmoUI();
-
-        // Spawn projectile
         if (prefabToSpawn != null && spellSpawnPoint != null)
         {
             GameObject spellObj = Instantiate(prefabToSpawn, spellSpawnPoint.position, spellSpawnPoint.rotation);
+
+            SpellProjectile proj = spellObj.GetComponent<SpellProjectile>();
+            if (proj != null)
+            {
+                proj.owner = this.gameObject;
+            }
+
             Rigidbody rb = spellObj.GetComponent<Rigidbody>();
             if (rb != null)
             {
                 rb.linearVelocity = spellSpawnPoint.forward * projectileSpeed;
             }
+
+            // Sync the projectile across all connected clients
+            NetworkObject netObj = spellObj.GetComponent<NetworkObject>();
+            if (netObj != null)
+            {
+                netObj.Spawn();
+            }
         }
-
-        // Refresh SpellBook UI so the dial unlocks immediately if it was previously full
-        if (spellBook != null)
-        {
-            spellBook.UpdateActivePageDisplay();
-        }
-    }
-
-    public void UpdateAmmoUI()
-    {
-        if (flameAmmoText != null)
-            flameAmmoText.text = $"<color=#FF4500>FLAME:</color> {flameAmmo}/{maxAmmoPerElement}";
-
-        if (waterAmmoText != null)
-            waterAmmoText.text = $"<color=#00FFFF>WATER:</color> {waterAmmo}/{maxAmmoPerElement}";
-
-        if (electricAmmoText != null)
-            electricAmmoText.text = $"<color=#FFD700>ELECTRIC:</color> {electricAmmo}/{maxAmmoPerElement}";
     }
 }

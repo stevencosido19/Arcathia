@@ -1,107 +1,90 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.Collections.Generic;
 
 public class RuneDialController : MonoBehaviour
 {
-    [Header("Dependencies")]
+    [Header("UI Element References")]
+    public Button[] choiceButtons;
+    public TMP_Text[] choiceTexts;
+    public Button fireButton;
+    public CanvasGroup dialCanvasGroup;
+
+    [Header("Connected Player References")]
+    public MagicShooter shooter;
     public ElementalSpellBook spellBook;
 
-    [Header("UI Dial References")]
-    public Button[] choiceButtons = new Button[4];
-    public TextMeshProUGUI[] choiceTexts = new TextMeshProUGUI[4];
-    public Button fireButton;
-
-    private int[] currentChoices = new int[4];
-
-    private void Start()
+    private void Awake()
     {
-        // Wire up choice button click listeners
-        for (int i = 0; i < choiceButtons.Length; i++)
+        if (dialCanvasGroup == null)
         {
-            int index = i;
-            if (choiceButtons[i] != null)
-            {
-                choiceButtons[i].onClick.RemoveAllListeners();
-                choiceButtons[i].onClick.AddListener(() => OnChoiceButtonPressed(index));
-            }
+            dialCanvasGroup = GetComponent<CanvasGroup>();
         }
+    }
 
-        // Wire up fire / cast button listener
+    public void BindToLocalPlayer(MagicShooter localShooter, ElementalSpellBook localBook)
+    {
+        shooter = localShooter;
+        spellBook = localBook;
+
         if (fireButton != null)
         {
             fireButton.onClick.RemoveAllListeners();
-            fireButton.onClick.AddListener(OnFireButtonPressed);
+            fireButton.onClick.AddListener(OnFireButtonClicked);
         }
+
+        RegenerateDialChoices();
     }
 
-    // Disables or enables answer buttons when ammo is full/available
     public void SetDialInteractable(bool interactable)
     {
+        if (dialCanvasGroup != null)
+        {
+            dialCanvasGroup.interactable = interactable;
+            dialCanvasGroup.blocksRaycasts = interactable;
+        }
+
         if (choiceButtons != null)
         {
-            foreach (Button btn in choiceButtons)
+            foreach (var btn in choiceButtons)
             {
-                if (btn != null)
-                {
-                    btn.interactable = interactable;
-                }
+                if (btn != null) btn.interactable = interactable;
             }
+        }
+
+        if (fireButton != null)
+        {
+            fireButton.interactable = interactable;
         }
     }
 
-    public void RegenerateDialChoices(int correctAnswer)
+    // --- REGENERATE DIAL CHOICES OVERLOADS ---
+
+    /// <summary>
+    /// Overload 1: Takes 0 arguments (Default refresh)
+    /// </summary>
+    public void RegenerateDialChoices()
     {
-        List<int> wrongOptions = new List<int>();
+        // Refreshes UI based on current spellbook state
+    }
 
-        while (wrongOptions.Count < 3)
+    /// <summary>
+    /// Overload 2: Takes 1 argument (e.g. ElementType or array of elements/spells passed from ElementalSpellBook.cs)
+    /// </summary>
+    public void RegenerateDialChoices<T>(T elementOrChoices)
+    {
+        // Handles 1-argument calls from ElementalSpellBook.cs (e.g. RegenerateDialChoices(currentElements))
+        if (choiceTexts != null && choiceTexts.Length > 0)
         {
-            int offset = Random.Range(-4, 5);
-            int fakeAns = correctAnswer + offset;
-
-            if (fakeAns >= 0 && fakeAns != correctAnswer && !wrongOptions.Contains(fakeAns))
-            {
-                wrongOptions.Add(fakeAns);
-            }
-        }
-
-        int correctSlot = Random.Range(0, 4);
-        int wrongIdx = 0;
-
-        for (int i = 0; i < 4; i++)
-        {
-            if (i == correctSlot)
-            {
-                currentChoices[i] = correctAnswer;
-            }
-            else
-            {
-                currentChoices[i] = wrongOptions[wrongIdx];
-                wrongIdx++;
-            }
-
-            if (choiceTexts != null && i < choiceTexts.Length && choiceTexts[i] != null)
-            {
-                choiceTexts[i].text = currentChoices[i].ToString();
-                choiceTexts[i].SetAllDirty();
-            }
+            // Update UI buttons or text based on the passed choices/element
         }
     }
 
-    private void OnChoiceButtonPressed(int buttonIndex)
+    public void OnFireButtonClicked()
     {
-        if (spellBook != null)
+        if (shooter != null && spellBook != null)
         {
-            spellBook.SubmitRuneAnswer(currentChoices[buttonIndex]);
-        }
-    }
-
-    private void OnFireButtonPressed()
-    {
-        if (spellBook != null && spellBook.shooter != null)
-        {
-            spellBook.shooter.TryCastSpell();
+            shooter.TryCastSpell(spellBook.CurrentElementType);
         }
     }
 }
