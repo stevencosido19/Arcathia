@@ -13,8 +13,8 @@ GameObject:
   - component: {fileID: 5027430133865734862}
   - component: {fileID: 221934400184304791}
   - component: {fileID: 669845724649817076}
-  - component: {fileID: 6047388474316063847}
   - component: {fileID: 5049517811173638555}
+  - component: {fileID: 1002407287540115826}
   m_Layer: 0
   m_Name: WaterSpellprefab
   m_TagString: Untagged
@@ -140,22 +140,6 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &6047388474316063847
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5295057511820168833}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3fbeaf020ffb2634d8b6948581f86e0d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpellProjectile
-  ShowTopMostFoldoutHeaderGroup: 1
-  baseDamage: 20
-  lifetime: 5
-  owner: {fileID: 0}
 --- !u!54 &5049517811173638555
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -183,3 +167,19 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 1
+--- !u!114 &1002407287540115826
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5295057511820168833}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d64e7141e90cf284eb50b40ab3a8f5c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MagicProjectile
+  ShowTopMostFoldoutHeaderGroup: 1
+  speed: 30
+  lifeTime: 4
+  damage: 25

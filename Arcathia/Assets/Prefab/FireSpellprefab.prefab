@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 8183861348256741586}
   - component: {fileID: 6864635519154705067}
   - component: {fileID: 7304994912373584402}
-  - component: {fileID: 4115935429660143726}
+  - component: {fileID: 1854273427419561625}
   m_Layer: 0
   m_Name: FireSpellprefab
   m_TagString: Untagged
@@ -167,7 +167,7 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &4115935429660143726
+--- !u!114 &1854273427419561625
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -176,10 +176,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 2684134513715926368}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3fbeaf020ffb2634d8b6948581f86e0d, type: 3}
+  m_Script: {fileID: 11500000, guid: d64e7141e90cf284eb50b40ab3a8f5c6, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpellProjectile
+  m_EditorClassIdentifier: Assembly-CSharp::MagicProjectile
   ShowTopMostFoldoutHeaderGroup: 1
-  baseDamage: 20
-  lifetime: 5
-  owner: {fileID: 0}
+  speed: 25
+  lifeTime: 4
+  damage: 15

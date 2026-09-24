@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 876096270763233838}
   - component: {fileID: 6354448116872335833}
   - component: {fileID: -5503028260265341058}
-  - component: {fileID: 6130676026673562547}
+  - component: {fileID: 6193523547928379272}
   m_Layer: 0
   m_Name: LightningSpellprefab
   m_TagString: Untagged
@@ -167,7 +167,7 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &6130676026673562547
+--- !u!114 &6193523547928379272
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -176,10 +176,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 2842848715062395188}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3fbeaf020ffb2634d8b6948581f86e0d, type: 3}
+  m_Script: {fileID: 11500000, guid: d64e7141e90cf284eb50b40ab3a8f5c6, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpellProjectile
+  m_EditorClassIdentifier: Assembly-CSharp::MagicProjectile
   ShowTopMostFoldoutHeaderGroup: 1
-  baseDamage: 20
-  lifetime: 5
-  owner: {fileID: 0}
+  speed: 40
+  lifeTime: 4
+  damage: 40
