@@ -3,104 +3,99 @@ using UnityEngine;
 
 public class PlayerMagicNetwork : NetworkBehaviour
 {
-    [Header("Projectile Prefabs")]
+    [Header("Spell Prefabs")]
     public GameObject fireProjectilePrefab;
     public GameObject waterProjectilePrefab;
     public GameObject lightningProjectilePrefab;
 
-    [Header("Spawn Settings")]
-    public Transform castPoint;
-
-    [Header("Ammo Settings (Max 5)")]
-    public int maxAmmo = 5;
-
-    // Networked ammo variables
-    private NetworkVariable<int> fireAmmo = new NetworkVariable<int>(0);
-    private NetworkVariable<int> waterAmmo = new NetworkVariable<int>(0);
-    private NetworkVariable<int> lightningAmmo = new NetworkVariable<int>(0);
-
-    private SpellbookUI spellbookUI;
-
-    public override void OnNetworkSpawn()
-    {
-        base.OnNetworkSpawn();
-
-        // ONLY the local owner connects their network variables to their local HUD Canvas
-        if (IsOwner)
-        {
-            spellbookUI = FindFirstObjectByType<SpellbookUI>();
-
-            if (spellbookUI != null)
-            {
-                // 1. Subscribe to future value changes
-                fireAmmo.OnValueChanged += (oldVal, newVal) => spellbookUI.UpdateAmmoUI(SpellType.Fire, newVal, maxAmmo);
-                waterAmmo.OnValueChanged += (oldVal, newVal) => spellbookUI.UpdateAmmoUI(SpellType.Water, newVal, maxAmmo);
-                lightningAmmo.OnValueChanged += (oldVal, newVal) => spellbookUI.UpdateAmmoUI(SpellType.Lightning, newVal, maxAmmo);
-
-                // 2. Force immediate UI refresh for initial spawn values
-                spellbookUI.UpdateAmmoUI(SpellType.Fire, fireAmmo.Value, maxAmmo);
-                spellbookUI.UpdateAmmoUI(SpellType.Water, waterAmmo.Value, maxAmmo);
-                spellbookUI.UpdateAmmoUI(SpellType.Lightning, lightningAmmo.Value, maxAmmo);
-            }
-            else
-            {
-                Debug.LogError("[PlayerMagicNetwork] SpellbookUI not found in scene!");
-            }
-        }
-    }
+    [Header("Ammo Settings")]
+    public int maxAmmo = 3;
+    private int fireAmmo = 0;
+    private int waterAmmo = 0;
+    private int lightningAmmo = 0;
 
     public void AddSpellAmmo(SpellType type, int amount)
-    {
-        if (!IsOwner) return;
-        AddAmmoServerRpc(type, amount);
-    }
-
-    [ServerRpc]
-    private void AddAmmoServerRpc(SpellType type, int amount)
     {
         switch (type)
         {
             case SpellType.Fire:
-                fireAmmo.Value = Mathf.Clamp(fireAmmo.Value + amount, 0, maxAmmo);
+                fireAmmo = Mathf.Clamp(fireAmmo + amount, 0, maxAmmo);
+                UpdateHUD(SpellType.Fire, fireAmmo);
                 break;
             case SpellType.Water:
-                waterAmmo.Value = Mathf.Clamp(waterAmmo.Value + amount, 0, maxAmmo);
+                waterAmmo = Mathf.Clamp(waterAmmo + amount, 0, maxAmmo);
+                UpdateHUD(SpellType.Water, waterAmmo);
                 break;
             case SpellType.Lightning:
-                lightningAmmo.Value = Mathf.Clamp(lightningAmmo.Value + amount, 0, maxAmmo);
+                lightningAmmo = Mathf.Clamp(lightningAmmo + amount, 0, maxAmmo);
+                UpdateHUD(SpellType.Lightning, lightningAmmo);
                 break;
         }
     }
 
+    public bool HasAmmo(SpellType type)
+    {
+        return type switch
+        {
+            SpellType.Fire => fireAmmo > 0,
+            SpellType.Water => waterAmmo > 0,
+            SpellType.Lightning => lightningAmmo > 0,
+            _ => false
+        };
+    }
+
     public void CastSpell(SpellType type)
     {
-        if (!IsOwner) return;
-
-        int currentAmmo = type switch
+        // 1. Check if player has ammo before shooting
+        if (!HasAmmo(type))
         {
-            SpellType.Fire => fireAmmo.Value,
-            SpellType.Water => waterAmmo.Value,
-            SpellType.Lightning => lightningAmmo.Value,
-            _ => 0
-        };
-
-        if (currentAmmo > 0)
-        {
-            // Use camera forward direction if castPoint isn't assigned
-            Vector3 spawnPos = castPoint != null ? castPoint.position : transform.position + transform.forward;
-            Quaternion spawnRot = castPoint != null ? castPoint.rotation : transform.rotation;
-
-            CastSpellServerRpc(type, spawnPos, spawnRot);
+            Debug.Log($"[PlayerMagic] No ammo left for {type}!");
+            return;
         }
-        else
+
+        // 2. Consume 1 ammo dot
+        DeductAmmo(type);
+
+        // 3. Request Server to spawn spell projectile
+        Vector3 spawnPosition = transform.position + transform.forward * 1.5f + Vector3.up * 1.0f;
+        CastSpellServerRpc(type, spawnPosition, transform.rotation);
+    }
+
+    private void DeductAmmo(SpellType type)
+    {
+        switch (type)
         {
-            Debug.Log($"No ammo for {type}! Solve an equation to reload.");
+            case SpellType.Fire:
+                fireAmmo--;
+                UpdateHUD(SpellType.Fire, fireAmmo);
+                break;
+            case SpellType.Water:
+                waterAmmo--;
+                UpdateHUD(SpellType.Water, waterAmmo);
+                break;
+            case SpellType.Lightning:
+                lightningAmmo--;
+                UpdateHUD(SpellType.Lightning, lightningAmmo);
+                break;
+        }
+    }
+
+    private void UpdateHUD(SpellType type, int currentCount)
+    {
+        if (IsOwner)
+        {
+            SpellbookUI ui = FindFirstObjectByType<SpellbookUI>();
+            if (ui != null)
+            {
+                ui.UpdateAmmoUI(type, currentCount, maxAmmo);
+            }
         }
     }
 
     [ServerRpc]
     private void CastSpellServerRpc(SpellType type, Vector3 spawnPos, Quaternion spawnRot)
     {
+        // Map SpellType to Inspector Prefabs
         GameObject prefabToSpawn = type switch
         {
             SpellType.Fire => fireProjectilePrefab,
@@ -112,14 +107,24 @@ public class PlayerMagicNetwork : NetworkBehaviour
         if (prefabToSpawn != null)
         {
             GameObject projectile = Instantiate(prefabToSpawn, spawnPos, spawnRot);
-            projectile.GetComponent<NetworkObject>().Spawn();
 
-            switch (type)
+            // Assign shooter so projectile ignores self-collision
+            MagicProjectile projScript = projectile.GetComponent<MagicProjectile>();
+            if (projScript != null)
             {
-                case SpellType.Fire: fireAmmo.Value--; break;
-                case SpellType.Water: waterAmmo.Value--; break;
-                case SpellType.Lightning: lightningAmmo.Value--; break;
+                projScript.SetShooter(NetworkObject);
             }
+
+            // Spawn across all networked clients
+            NetworkObject netObj = projectile.GetComponent<NetworkObject>();
+            if (netObj != null)
+            {
+                netObj.Spawn();
+            }
+        }
+        else
+        {
+            Debug.LogError($"[PlayerMagicNetwork] Prefab for {type} is NOT assigned in the Inspector!");
         }
     }
 }

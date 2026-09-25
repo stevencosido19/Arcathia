@@ -195,7 +195,7 @@ Transform:
   m_GameObject: {fileID: 5430047754846937208}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.184, z: 0.888}
+  m_LocalPosition: {x: 0, y: -0.031, z: 0.888}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -217,9 +217,9 @@ GameObject:
   - component: {fileID: 341037525860617522}
   - component: {fileID: 5506847443646974886}
   - component: {fileID: 1650002620848544471}
-  - component: {fileID: 1216716619245259088}
   - component: {fileID: -2919895037772058264}
   - component: {fileID: 5275883003659028168}
+  - component: {fileID: 3087285356256863753}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -360,9 +360,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 188c4193bf528af42b1e5bac090703b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MobileTouchInput
-  lookSensitivityX: 0.15
-  lookSensitivityY: 0.15
-  joystickDeadzoneDistance: 80
+  maxDragDistance: 100
 --- !u!114 &5506847443646974886
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -375,7 +373,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3904397011
+  GlobalObjectIdHash: 2499337959
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -401,27 +399,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   ShowTopMostFoldoutHeaderGroup: 1
-  moveSpeed: 20
-  jumpHeight: 3
-  gravity: -19.62
-  cameraHolder: {fileID: 5747236584488745449}
+  moveSpeed: 30
+  jumpSpeed: 60
+  baseGravity: -9.81
+  jumpGravityMultiplier: 20
+  fallGravityMultiplier: 20
+  maxFallSpeed: 25
   playerCamera: {fileID: 4260112714974373224}
-  audioListener: {fileID: 0}
---- !u!114 &1216716619245259088
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8035189997908314750}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 188c4193bf528af42b1e5bac090703b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MobileTouchInput
-  lookSensitivityX: 0.15
-  lookSensitivityY: 0.15
-  joystickDeadzoneDistance: 80
+  mouseSensitivity: 0.15
 --- !u!114 &-2919895037772058264
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -486,3 +471,15 @@ MonoBehaviour:
   lightningProjectilePrefab: {fileID: 2842848715062395188, guid: 1e0333437fbba3249ae784384687457f, type: 3}
   castPoint: {fileID: 3552201633354823027}
   maxAmmo: 6
+--- !u!114 &3087285356256863753
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8035189997908314750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1299e7d7151a3f49b7fda3f8313ffdf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'

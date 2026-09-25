@@ -1,107 +1,143 @@
-using UnityEngine;
 using Unity.Netcode;
+using UnityEngine;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(CharacterController))]
-[RequireComponent(typeof(MobileTouchInput))]
-public class PlayerController : NetworkBehaviour // <-- Updated class name here!
+public class PlayerController : NetworkBehaviour
 {
     [Header("Movement Settings")]
-    public float moveSpeed = 6.0f;
-    public float jumpHeight = 1.5f;
-    public float gravity = -19.62f;
+    public float moveSpeed = 5.0f;
 
-    [Header("References")]
-    public Transform cameraHolder;
+    [Header("Jump & Fall Customization")]
+    public float jumpSpeed = 8.0f;
+    public float baseGravity = -9.81f;
+    public float jumpGravityMultiplier = 1.0f;
+    public float fallGravityMultiplier = 2.0f;
+    public float maxFallSpeed = 25.0f;
+
+    [Header("Camera Settings")]
     public Camera playerCamera;
-    public AudioListener audioListener;
+    public float mouseSensitivity = 0.15f;
 
-    private CharacterController characterController;
-    private MobileTouchInput inputHandler;
+    private CharacterController controller;
+    private MobileTouchInput touchInputHandler;
+
     private Vector3 velocity;
-    private float verticalCameraPitch = 0.0f;
     private bool isGrounded;
+    private float xRotation = 0f;
+
+    private void Awake()
+    {
+        controller = GetComponent<CharacterController>();
+        touchInputHandler = GetComponent<MobileTouchInput>();
+    }
 
     public override void OnNetworkSpawn()
     {
-        characterController = GetComponent<CharacterController>();
-        inputHandler = GetComponent<MobileTouchInput>();
-
-        if (IsOwner)
+        if (playerCamera != null)
         {
-            if (playerCamera != null) playerCamera.enabled = true;
-            if (audioListener != null) audioListener.enabled = true;
-            if (inputHandler != null) inputHandler.enabled = true;
+            playerCamera.enabled = IsOwner;
         }
-        else
+
+        AudioListener listener = GetComponentInChildren<AudioListener>();
+        if (listener != null)
         {
-            if (playerCamera != null) playerCamera.enabled = false;
-            if (audioListener != null) audioListener.enabled = false;
-            if (inputHandler != null) inputHandler.enabled = false;
+            listener.enabled = IsOwner;
         }
     }
 
-    void Update()
+    private void Update()
     {
         if (!IsOwner) return;
 
-        HandleGroundCheck();
-        HandleLook();
         HandleMovement();
-        HandleJump();
-    }
-
-    private void HandleGroundCheck()
-    {
-        isGrounded = characterController.isGrounded;
-        if (isGrounded && velocity.y < 0)
-        {
-            velocity.y = -2f;
-        }
-    }
-
-    private void HandleLook()
-    {
-        Vector2 lookInput = inputHandler.LookInput;
-
-        verticalCameraPitch -= lookInput.y * inputHandler.lookSensitivityY;
-        verticalCameraPitch = Mathf.Clamp(verticalCameraPitch, -85f, 85f);
-
-        if (cameraHolder != null)
-        {
-            cameraHolder.localRotation = Quaternion.Euler(verticalCameraPitch, 0f, 0f);
-        }
-
-        transform.Rotate(Vector3.up * (lookInput.x * inputHandler.lookSensitivityX));
+        HandleCameraLook();
     }
 
     private void HandleMovement()
     {
-        Vector2 moveInput = inputHandler.MoveInput;
-        Vector3 moveDirection = transform.right * moveInput.x + transform.forward * moveInput.y;
+        isGrounded = controller.isGrounded;
 
-        characterController.Move(moveDirection * moveSpeed * Time.deltaTime);
-    }
-
-    private void HandleJump()
-    {
-        if (inputHandler.JumpRequested)
+        if (isGrounded && velocity.y < 0)
         {
-            if (isGrounded)
-            {
-                velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-            }
-            inputHandler.JumpRequested = false;
+            velocity.y = -2f;
         }
 
-        velocity.y += gravity * Time.deltaTime;
-        characterController.Move(velocity * Time.deltaTime);
+        float moveX = 0f;
+        float moveZ = 0f;
+
+        // 1. WASD Keyboard Inputs
+        if (Keyboard.current != null)
+        {
+            if (Keyboard.current.wKey.isPressed) moveZ += 1f;
+            if (Keyboard.current.sKey.isPressed) moveZ -= 1f;
+            if (Keyboard.current.dKey.isPressed) moveX += 1f;
+            if (Keyboard.current.aKey.isPressed) moveX -= 1f;
+
+            if (Keyboard.current.spaceKey.wasPressedThisFrame && isGrounded)
+            {
+                TriggerJump();
+            }
+        }
+
+        // 2. Read Touch Drag Vector from Left Side of Screen
+        if (touchInputHandler != null)
+        {
+            moveX += touchInputHandler.MoveInput.x;
+            moveZ += touchInputHandler.MoveInput.y;
+        }
+
+        // Clamp total movement input
+        Vector2 combinedInput = Vector2.ClampMagnitude(new Vector2(moveX, moveZ), 1f);
+
+        Vector3 move = transform.right * combinedInput.x + transform.forward * combinedInput.y;
+        controller.Move(move * moveSpeed * Time.deltaTime);
+
+        // Dynamic Gravity Calculations
+        if (velocity.y > 0)
+        {
+            velocity.y += baseGravity * jumpGravityMultiplier * Time.deltaTime;
+        }
+        else
+        {
+            velocity.y += baseGravity * fallGravityMultiplier * Time.deltaTime;
+        }
+
+        velocity.y = Mathf.Max(velocity.y, -maxFallSpeed);
+        controller.Move(velocity * Time.deltaTime);
+    }
+
+    private void HandleCameraLook()
+    {
+        if (playerCamera == null) return;
+
+        Vector2 lookDelta = Vector2.zero;
+
+        if (touchInputHandler != null)
+        {
+            lookDelta = touchInputHandler.LookInput;
+        }
+
+        float lookX = lookDelta.x * mouseSensitivity;
+        float lookY = lookDelta.y * mouseSensitivity;
+
+        xRotation -= lookY;
+        xRotation = Mathf.Clamp(xRotation, -80f, 80f);
+        playerCamera.transform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+
+        if (Mathf.Abs(lookX) > 0.001f)
+        {
+            transform.Rotate(Vector3.up * lookX);
+        }
     }
 
     public void TriggerJump()
     {
-        if (IsOwner && isGrounded)
+        if (!IsOwner) return;
+
+        if (isGrounded)
         {
-            inputHandler.JumpRequested = true;
+            velocity.y = jumpSpeed;
         }
     }
 }
