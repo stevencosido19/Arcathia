@@ -85,7 +85,7 @@ public class MobileTouchInput : MonoBehaviour
             // -------------------------------------------------------------
             if (phase == UnityEngine.InputSystem.TouchPhase.Began)
             {
-                // FIX 1: Correct UI Pointer Over check for New Input System
+                // Ignore if touch started over a UI button/element
                 if (IsTouchOverUI(fingerId))
                 {
                     continue;
@@ -104,7 +104,6 @@ public class MobileTouchInput : MonoBehaviour
                     lookTouchId = fingerId;
                     lookTouchFoundThisFrame = true;
 
-                    // Capture delta if moving on frame 1
                     if (delta != Vector2.zero)
                     {
                         LookInput = delta;
@@ -113,26 +112,31 @@ public class MobileTouchInput : MonoBehaviour
             }
         }
 
-        // Safety Cleanups: Only reset if the finger completely disappeared from input buffer
-        if (moveTouchId != -1 && !moveTouchFoundThisFrame)
+        // --- SAFETY RECOVERY FIXES ---
+        // Force-clear touch IDs if the physical touch list is empty or fingers lifted
+        if (touches.Count == 0)
         {
-            moveTouchId = -1;
-            MoveInput = Vector2.zero;
+            ResetAllInputs();
         }
-
-        if (lookTouchId != -1 && !lookTouchFoundThisFrame)
+        else
         {
-            lookTouchId = -1;
-            LookInput = Vector2.zero;
+            if (moveTouchId != -1 && !moveTouchFoundThisFrame)
+            {
+                moveTouchId = -1;
+                MoveInput = Vector2.zero;
+            }
+
+            if (lookTouchId != -1 && !lookTouchFoundThisFrame)
+            {
+                lookTouchId = -1;
+            }
         }
     }
 
-    /// <summary>
-    /// Checks if a touch finger is over a UI Graphic element (New Input System compatible).
-    /// </summary>
     private bool IsTouchOverUI(int fingerId)
     {
         if (EventSystem.current == null) return false;
+        if (Touchscreen.current == null || fingerId >= Touchscreen.current.touches.Count) return false;
 
         PointerEventData eventData = new PointerEventData(EventSystem.current)
         {
