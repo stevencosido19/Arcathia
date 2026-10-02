@@ -221,7 +221,8 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
             PlayerHealth localHealth = GetLocalPlayerHealth();
             if (localHealth != null)
             {
-                localHealth.TakeDamageServerRpc(wrongAnswerDamage);
+                // Fixed: Request server to apply backfire damage via ServerRpc
+                localHealth.ApplyBackfireServerRpc(wrongAnswerDamage);
             }
 
             // Consume rune on wrong answer or re-roll Fire problem

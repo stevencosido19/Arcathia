@@ -1,71 +1,151 @@
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 
 public class PlayerHealth : NetworkBehaviour
 {
     [Header("Health Settings")]
     public int maxHealth = 100;
+    public bool allowSelfDamageScore = false; // Set true if backfires/suicide should grant score
 
-    public NetworkVariable<int> currentHealth = new NetworkVariable<int>(100);
-
-    private HealthBarUI healthBarUI;
+    public NetworkVariable<int> currentHealth = new NetworkVariable<int>(
+        100,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
 
     public override void OnNetworkSpawn()
     {
-        base.OnNetworkSpawn();
-
         if (IsServer)
         {
             currentHealth.Value = maxHealth;
         }
 
-        currentHealth.OnValueChanged += OnHealthChanged;
-
         if (IsOwner)
         {
-            healthBarUI = FindFirstObjectByType<HealthBarUI>();
-            if (healthBarUI != null)
+            if (HealthBarUI.Instance != null)
             {
-                healthBarUI.UpdateHealthUI(currentHealth.Value, maxHealth);
+                HealthBarUI.Instance.BindPlayer(this);
+            }
+            else
+            {
+                HealthBarUI ui = FindFirstObjectByType<HealthBarUI>();
+                if (ui != null)
+                {
+                    ui.BindPlayer(this);
+                }
             }
         }
     }
 
-    public override void OnNetworkDespawn()
+    [Rpc(SendTo.Server)]
+    public void ApplyBackfireServerRpc(int amount)
     {
-        base.OnNetworkDespawn();
-        currentHealth.OnValueChanged -= OnHealthChanged;
+        TakeDamage(amount, NetworkObject);
     }
 
-    private void OnHealthChanged(int previousValue, int newValue)
-    {
-        if (IsOwner && healthBarUI != null)
-        {
-            healthBarUI.UpdateHealthUI(newValue, maxHealth);
-        }
-    }
-
-    // --- ADD THIS METHOD HERE ---
-    [ServerRpc]
-    public void TakeDamageServerRpc(int damageAmount)
-    {
-        TakeDamage(damageAmount);
-    }
-
-    public void TakeDamage(int damageAmount)
+    public void TakeDamage(int amount, NetworkObject attacker = null)
     {
         if (!IsServer) return;
 
-        currentHealth.Value = Mathf.Clamp(currentHealth.Value - damageAmount, 0, maxHealth);
+        if (currentHealth.Value <= 0) return;
+
+        currentHealth.Value = Mathf.Max(0, currentHealth.Value - amount);
+        Debug.Log($"[PlayerHealth] {gameObject.name} took {amount} damage. Current Health: {currentHealth.Value}");
 
         if (currentHealth.Value <= 0)
         {
-            Die();
+            DieAndRespawn(attacker);
         }
     }
 
-    private void Die()
+    private void DieAndRespawn(NetworkObject attacker)
     {
-        Debug.Log($"{gameObject.name} was defeated!");
+        if (!IsServer) return;
+
+        // --- KILL FEED NOTIFICATION ---
+        if (attacker != null && KillFeedUI.Instance != null)
+        {
+            string attackerName = attacker.gameObject.name.Replace("(Clone)", "");
+            string victimName = gameObject.name.Replace("(Clone)", "");
+
+            KillFeedUI.Instance.SendKillNotification(attackerName, victimName);
+        }
+
+        // --- SCORE AWARDING ---
+        if (attacker != null && (attacker != NetworkObject || allowSelfDamageScore))
+        {
+            PlayerScore attackerScore = attacker.GetComponent<PlayerScore>();
+            if (attackerScore != null)
+            {
+                attackerScore.AddScore(1);
+            }
+        }
+
+        // --- TELEPORT & RESPAWN ---
+        Transform spawnPoint = PlayerSpawnManager.Instance != null
+            ? PlayerSpawnManager.Instance.GetNextSpawnPoint()
+            : null;
+
+        Vector3 targetPosition = spawnPoint != null ? spawnPoint.position : new Vector3(0, 2f, 0);
+        Quaternion targetRotation = spawnPoint != null ? spawnPoint.rotation : Quaternion.identity;
+
+        CharacterController controller = GetComponent<CharacterController>();
+        Rigidbody rb = GetComponent<Rigidbody>();
+
+        if (controller != null) controller.enabled = false;
+        if (rb != null) rb.isKinematic = true;
+
+        NetworkTransform netTransform = GetComponent<NetworkTransform>();
+        if (netTransform != null)
+        {
+            if (netTransform.CanCommitToTransform)
+            {
+                netTransform.Teleport(targetPosition, targetRotation, transform.localScale);
+            }
+            else
+            {
+                TeleportClientRpc(targetPosition, targetRotation);
+            }
+        }
+        else
+        {
+            transform.position = targetPosition;
+            transform.rotation = targetRotation;
+        }
+
+        Physics.SyncTransforms();
+
+        if (controller != null) controller.enabled = true;
+        if (rb != null) rb.isKinematic = false;
+
+        // Reset Health
+        currentHealth.Value = maxHealth;
+    }
+
+    [Rpc(SendTo.Owner)]
+    private void TeleportClientRpc(Vector3 position, Quaternion rotation)
+    {
+        CharacterController controller = GetComponent<CharacterController>();
+        Rigidbody rb = GetComponent<Rigidbody>();
+
+        if (controller != null) controller.enabled = false;
+        if (rb != null) rb.isKinematic = true;
+
+        NetworkTransform netTransform = GetComponent<NetworkTransform>();
+        if (netTransform != null)
+        {
+            netTransform.Teleport(position, rotation, transform.localScale);
+        }
+        else
+        {
+            transform.position = position;
+            transform.rotation = rotation;
+        }
+
+        Physics.SyncTransforms();
+
+        if (controller != null) controller.enabled = true;
+        if (rb != null) rb.isKinematic = false;
     }
 }

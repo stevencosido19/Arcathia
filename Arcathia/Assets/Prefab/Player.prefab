@@ -2884,6 +2884,7 @@ GameObject:
   - component: {fileID: -1558075404931352423}
   - component: {fileID: -8225832634108770736}
   - component: {fileID: 1731768921628648212}
+  - component: {fileID: 6758617644769223595}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -3230,6 +3231,25 @@ MonoBehaviour:
   wandHolder: {fileID: 8103581638063236464}
   playerCamera: {fileID: 4260112714974373224}
   invisibleLayerName: LocalCosmetics
+--- !u!114 &6758617644769223595
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8035189997908314750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 847febd14c48918458658c065b2036da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  ShowTopMostFoldoutHeaderGroup: 1
+  score:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  playerAvatar: {fileID: 21300000, guid: 917d22aae82ec5a48a6b2fb1104024dd, type: 3}
 --- !u!1 &8099597165931184373
 GameObject:
   m_ObjectHideFlags: 0

@@ -12,7 +12,7 @@ public class PlayerSpawnManager : MonoBehaviour
 
     private void Awake()
     {
-        // Set up Singleton instance
+        // Singleton pattern setup
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -28,19 +28,11 @@ public class PlayerSpawnManager : MonoBehaviour
         availableSpawnPoints = new List<Transform>(spawnPoints);
     }
 
-    public Vector3 GetNextSpawnPosition()
-    {
-        Transform point = GetRandomSpawnPoint();
-        return point != null ? point.position : new Vector3(0, 2f, 0);
-    }
-
-    public Quaternion GetNextSpawnRotation()
-    {
-        Transform point = GetRandomSpawnPoint();
-        return point != null ? point.rotation : Quaternion.identity;
-    }
-
-    private Transform GetRandomSpawnPoint()
+    /// <summary>
+    /// Returns a single non-repeating spawn point Transform.
+    /// Use this when you need both position and rotation together.
+    /// </summary>
+    public Transform GetNextSpawnPoint()
     {
         if (spawnPoints == null || spawnPoints.Count == 0)
         {
@@ -59,5 +51,23 @@ public class PlayerSpawnManager : MonoBehaviour
         availableSpawnPoints.RemoveAt(index);
 
         return selectedPoint;
+    }
+
+    /// <summary>
+    /// Returns position of the next non-repeating spawn point.
+    /// </summary>
+    public Vector3 GetNextSpawnPosition()
+    {
+        Transform point = GetNextSpawnPoint();
+        return point != null ? point.position : new Vector3(0, 2f, 0);
+    }
+
+    /// <summary>
+    /// Returns rotation of the next non-repeating spawn point.
+    /// </summary>
+    public Quaternion GetNextSpawnRotation()
+    {
+        Transform point = GetNextSpawnPoint();
+        return point != null ? point.rotation : Quaternion.identity;
     }
 }

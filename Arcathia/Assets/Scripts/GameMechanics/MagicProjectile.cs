@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
 public class MagicProjectile : NetworkBehaviour
 {
     public float speed = 25f;
@@ -8,8 +9,14 @@ public class MagicProjectile : NetworkBehaviour
     public int damage = 20;
 
     private NetworkObject shooterNetObj;
+    private Rigidbody rb;
+    private bool hasHit = false; // Flag to prevent multiple hits in the same frame
 
-    // Called on the Server before spawning to assign who shot this spell
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+    }
+
     public void SetShooter(NetworkObject shooter)
     {
         shooterNetObj = shooter;
@@ -18,46 +25,42 @@ public class MagicProjectile : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
+        rb.linearVelocity = transform.forward * speed; // Use rb.velocity on older Unity versions
 
-        // Server handles lifeTime timer through Netcode Despawn
         if (IsServer)
         {
             Invoke(nameof(DespawnProjectile), lifeTime);
         }
     }
 
-    void Update()
-    {
-        // Move the projectile forward
-        transform.Translate(Vector3.forward * speed * Time.deltaTime);
-    }
-
     private void OnTriggerEnter(Collider other)
     {
-        // Physics damage logic MUST strictly run on the Server
+        // 1. Only server calculates damage
         if (!IsServer) return;
 
-        // 1. Search for PlayerHealth on the hit object OR its parent hierarchy
-        PlayerHealth targetHealth = other.GetComponentInParent<PlayerHealth>();
+        // 2. Prevent double-triggering in the same frame
+        if (hasHit) return;
 
-        if (targetHealth != null)
+        // 3. Ignore self-hit on shooter
+        if (shooterNetObj != null && (other.gameObject == shooterNetObj.gameObject || other.transform.IsChildOf(shooterNetObj.transform)))
         {
-            // 2. IGNORE COLLISION if this is the player who fired the spell!
-            if (shooterNetObj != null && targetHealth.NetworkObject == shooterNetObj)
-            {
-                return;
-            }
+            return;
+        }
 
-            // 3. APPLY DAMAGE to the opponent
-            Debug.Log($"[Spell Hit] Hit {targetHealth.gameObject.name}! Dealing {damage} damage.");
-            targetHealth.TakeDamage(damage);
+        // Check if hit target has PlayerHealth
+        PlayerHealth playerHealth = other.GetComponentInParent<PlayerHealth>();
 
-            // 4. Despawn projectile after successful hit
+        if (playerHealth != null)
+        {
+            hasHit = true; // Lock immediately before dealing damage
+
+            // Pass shooterNetObj so PlayerHealth awards score to the attacker
+            playerHealth.TakeDamage(damage, shooterNetObj);
             DespawnProjectile();
         }
-        else if (!other.isTrigger)
+        else if (!other.isTrigger) // Hit environmental wall/obstacle
         {
-            // Optional: Despawn if it hits walls or non-trigger environment obstacles
+            hasHit = true;
             DespawnProjectile();
         }
     }
