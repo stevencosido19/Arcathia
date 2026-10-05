@@ -1,151 +1,72 @@
 using Unity.Netcode;
-using Unity.Netcode.Components;
 using UnityEngine;
 
 public class PlayerHealth : NetworkBehaviour
 {
     [Header("Health Settings")]
-    public int maxHealth = 100;
-    public bool allowSelfDamageScore = false; // Set true if backfires/suicide should grant score
-
     public NetworkVariable<int> currentHealth = new NetworkVariable<int>(
-        100,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+        100, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+    public int maxHealth = 100;
+
+    private PlayerPowerUpHandler powerUpHandler;
+
+    private void Awake()
+    {
+        powerUpHandler = GetComponent<PlayerPowerUpHandler>();
+    }
 
     public override void OnNetworkSpawn()
     {
+        // Initialize health on the server when spawned
         if (IsServer)
         {
             currentHealth.Value = maxHealth;
         }
-
-        if (IsOwner)
-        {
-            if (HealthBarUI.Instance != null)
-            {
-                HealthBarUI.Instance.BindPlayer(this);
-            }
-            else
-            {
-                HealthBarUI ui = FindFirstObjectByType<HealthBarUI>();
-                if (ui != null)
-                {
-                    ui.BindPlayer(this);
-                }
-            }
-        }
     }
 
-    [Rpc(SendTo.Server)]
-    public void ApplyBackfireServerRpc(int amount)
+    /// <summary>
+    /// ServerRpc invoked by clients (e.g., from SpellbookUI when answering incorrectly) 
+    /// to request damage application on the server.
+    /// </summary>
+    [ServerRpc]
+    public void ApplyBackfireServerRpc(int damage)
     {
-        TakeDamage(amount, NetworkObject);
+        TakeDamage(damage);
     }
 
-    public void TakeDamage(int amount, NetworkObject attacker = null)
+    /// <summary>
+    /// Deducts health on the server. Accepts an optional attacker NetworkObject for kill credit.
+    /// </summary>
+    public void TakeDamage(int damage, NetworkObject attacker = null)
     {
+        // 1. Guard check: Only the Server is allowed to process health changes
         if (!IsServer) return;
 
-        if (currentHealth.Value <= 0) return;
+        // 2. Check Prism Barrier shield
+        if (powerUpHandler != null && powerUpHandler.isPrismBarrierActive.Value)
+        {
+            // Shield absorbs the damage payload and turns off
+            powerUpHandler.isPrismBarrierActive.Value = false;
+            Debug.Log($"<color=cyan>[PowerUp Effect]</color> Prism Barrier absorbed damage for {gameObject.name}!");
+            return;
+        }
 
-        currentHealth.Value = Mathf.Max(0, currentHealth.Value - amount);
-        Debug.Log($"[PlayerHealth] {gameObject.name} took {amount} damage. Current Health: {currentHealth.Value}");
+        // 3. Deduct health safely
+        currentHealth.Value = Mathf.Max(0, currentHealth.Value - damage);
+        string attackerName = attacker != null ? attacker.name : "Environment/Self";
+        Debug.Log($"[PlayerHealth] {gameObject.name} took {damage} damage from {attackerName}. Current Health: {currentHealth.Value}");
 
+        // 4. Check for death
         if (currentHealth.Value <= 0)
         {
-            DieAndRespawn(attacker);
+            Die(attacker);
         }
     }
 
-    private void DieAndRespawn(NetworkObject attacker)
+    private void Die(NetworkObject killer = null)
     {
-        if (!IsServer) return;
-
-        // --- KILL FEED NOTIFICATION ---
-        if (attacker != null && KillFeedUI.Instance != null)
-        {
-            string attackerName = attacker.gameObject.name.Replace("(Clone)", "");
-            string victimName = gameObject.name.Replace("(Clone)", "");
-
-            KillFeedUI.Instance.SendKillNotification(attackerName, victimName);
-        }
-
-        // --- SCORE AWARDING ---
-        if (attacker != null && (attacker != NetworkObject || allowSelfDamageScore))
-        {
-            PlayerScore attackerScore = attacker.GetComponent<PlayerScore>();
-            if (attackerScore != null)
-            {
-                attackerScore.AddScore(1);
-            }
-        }
-
-        // --- TELEPORT & RESPAWN ---
-        Transform spawnPoint = PlayerSpawnManager.Instance != null
-            ? PlayerSpawnManager.Instance.GetNextSpawnPoint()
-            : null;
-
-        Vector3 targetPosition = spawnPoint != null ? spawnPoint.position : new Vector3(0, 2f, 0);
-        Quaternion targetRotation = spawnPoint != null ? spawnPoint.rotation : Quaternion.identity;
-
-        CharacterController controller = GetComponent<CharacterController>();
-        Rigidbody rb = GetComponent<Rigidbody>();
-
-        if (controller != null) controller.enabled = false;
-        if (rb != null) rb.isKinematic = true;
-
-        NetworkTransform netTransform = GetComponent<NetworkTransform>();
-        if (netTransform != null)
-        {
-            if (netTransform.CanCommitToTransform)
-            {
-                netTransform.Teleport(targetPosition, targetRotation, transform.localScale);
-            }
-            else
-            {
-                TeleportClientRpc(targetPosition, targetRotation);
-            }
-        }
-        else
-        {
-            transform.position = targetPosition;
-            transform.rotation = targetRotation;
-        }
-
-        Physics.SyncTransforms();
-
-        if (controller != null) controller.enabled = true;
-        if (rb != null) rb.isKinematic = false;
-
-        // Reset Health
-        currentHealth.Value = maxHealth;
-    }
-
-    [Rpc(SendTo.Owner)]
-    private void TeleportClientRpc(Vector3 position, Quaternion rotation)
-    {
-        CharacterController controller = GetComponent<CharacterController>();
-        Rigidbody rb = GetComponent<Rigidbody>();
-
-        if (controller != null) controller.enabled = false;
-        if (rb != null) rb.isKinematic = true;
-
-        NetworkTransform netTransform = GetComponent<NetworkTransform>();
-        if (netTransform != null)
-        {
-            netTransform.Teleport(position, rotation, transform.localScale);
-        }
-        else
-        {
-            transform.position = position;
-            transform.rotation = rotation;
-        }
-
-        Physics.SyncTransforms();
-
-        if (controller != null) controller.enabled = true;
-        if (rb != null) rb.isKinematic = false;
+        Debug.Log($"[PlayerHealth] {gameObject.name} was defeated by {(killer != null ? killer.name : "the environment")}!");
+        // Add death, ragdoll, or respawn logic here
     }
 }

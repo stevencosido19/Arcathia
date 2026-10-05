@@ -14,6 +14,22 @@ public class PlayerMagicNetwork : NetworkBehaviour
     private int waterAmmo = 0;
     private int lightningAmmo = 0;
 
+    private PlayerPowerUpHandler powerUpHandler;
+    private SpellbookUI spellbookUI;
+
+    private void Awake()
+    {
+        powerUpHandler = GetComponent<PlayerPowerUpHandler>();
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        if (IsOwner)
+        {
+            spellbookUI = FindFirstObjectByType<SpellbookUI>();
+        }
+    }
+
     public void AddSpellAmmo(SpellType type, int amount)
     {
         switch (type)
@@ -84,10 +100,14 @@ public class PlayerMagicNetwork : NetworkBehaviour
     {
         if (IsOwner)
         {
-            SpellbookUI ui = FindFirstObjectByType<SpellbookUI>();
-            if (ui != null)
+            if (spellbookUI == null)
             {
-                ui.UpdateAmmoUI(type, currentCount, maxAmmo);
+                spellbookUI = FindFirstObjectByType<SpellbookUI>();
+            }
+
+            if (spellbookUI != null)
+            {
+                spellbookUI.UpdateAmmoUI(type, currentCount, maxAmmo);
             }
         }
     }
@@ -113,6 +133,20 @@ public class PlayerMagicNetwork : NetworkBehaviour
             if (projScript != null)
             {
                 projScript.SetShooter(NetworkObject);
+
+                // --- OVERCHARGE MATRIX CHECK ---
+                if (powerUpHandler != null && powerUpHandler.isOverchargeActive.Value)
+                {
+                    int baseDamage = projScript.damage;
+                    projScript.damage *= 2; // Double damage payload
+                    powerUpHandler.isOverchargeActive.Value = false; // Consume Overcharge effect
+
+                    Debug.Log($"<color=orange>[PowerUp Effect]</color> Overcharge Matrix applied! Cast spell damage boosted from {baseDamage} to {projScript.damage} on {gameObject.name}.");
+                }
+                else
+                {
+                    Debug.Log($"[PlayerMagicNetwork] {gameObject.name} cast {type} spell with normal damage ({projScript.damage}).");
+                }
             }
 
             // Spawn across all networked clients

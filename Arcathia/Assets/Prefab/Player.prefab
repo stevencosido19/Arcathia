@@ -2885,6 +2885,7 @@ GameObject:
   - component: {fileID: -8225832634108770736}
   - component: {fileID: 1731768921628648212}
   - component: {fileID: 6758617644769223595}
+  - component: {fileID: 37529577030852154}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -3039,7 +3040,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3904397011
+  GlobalObjectIdHash: 2499337959
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -3152,6 +3153,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   ShowTopMostFoldoutHeaderGroup: 1
   maxHealth: 100
+  allowSelfDamageScore: 0
   currentHealth:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
@@ -3250,6 +3252,25 @@ MonoBehaviour:
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
   playerAvatar: {fileID: 21300000, guid: 917d22aae82ec5a48a6b2fb1104024dd, type: 3}
+--- !u!114 &37529577030852154
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8035189997908314750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df92f67087a60314c88d250935861709, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerPowerUpHandler
+  ShowTopMostFoldoutHeaderGroup: 1
+  hasRuneLens: 0
+  hasPrismBarrier: 0
+  hasOverchargeMatrix: 0
+  isPrismBarrierActive: 0
+  isOverchargeActive: 0
+  spellbookUI: {fileID: 0}
 --- !u!1 &8099597165931184373
 GameObject:
   m_ObjectHideFlags: 0

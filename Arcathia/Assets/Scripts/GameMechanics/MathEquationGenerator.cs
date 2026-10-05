@@ -11,6 +11,24 @@ public enum SpellType
 public class MathEquationGenerator : MonoBehaviour
 {
     [System.Serializable]
+    public class ApprovedEquation
+    {
+        [Header("Spell Category")]
+        public SpellType spellType;
+
+        [Header("Validated Equation Info")]
+        public string questionText; // e.g., "8 + _ = 16"
+        public int correctAnswer;  // e.g., 8
+
+        [Header("Dial Choices (Must have 4 options)")]
+        public List<int> dialOptions = new List<int>() { 0, 0, 0, 0 }; // 1 correct answer + 3 distractors
+
+        [Header("Validation Note")]
+        [TextArea(1, 3)]
+        public string professorNote; // Optional note/comment from the professor
+    }
+
+    [System.Serializable]
     public class EquationData
     {
         public SpellType spellType;
@@ -19,67 +37,50 @@ public class MathEquationGenerator : MonoBehaviour
         public List<int> dialOptions; // 4 quadrant numbers
     }
 
+    [Header("Pre-Approved Equation Database")]
+    public List<ApprovedEquation> preApprovedDatabase = new List<ApprovedEquation>();
+
     /// <summary>
-    /// Generates a randomized equation based on chosen spell type.
+    /// Fetches a random pre-approved equation from the inspector database matching the requested SpellType.
     /// </summary>
     public EquationData GenerateProblem(SpellType spellType)
     {
+        // 1. Filter database for entries matching the requested spell type
+        List<ApprovedEquation> matchingEquations = preApprovedDatabase.FindAll(eq => eq.spellType == spellType);
+
+        if (matchingEquations.Count == 0)
+        {
+            Debug.LogError($"[MathDatabase ERROR] No pre-approved equations found for SpellType '{spellType}' in the Inspector database!");
+            return null;
+        }
+
+        // 2. Pick a random approved equation
+        ApprovedEquation selected = matchingEquations[Random.Range(0, matchingEquations.Count)];
+
+        // 3. Construct and format EquationData output
         EquationData data = new EquationData();
-        data.spellType = spellType;
+        data.spellType = selected.spellType;
+        data.questionText = selected.questionText;
+        data.correctAnswer = selected.correctAnswer;
 
-        int a = 0, b = 0, result = 0;
-        string symbol = "";
+        // Clone dial options and shuffle quadrant positions
+        data.dialOptions = new List<int>(selected.dialOptions);
+        ShuffleList(data.dialOptions);
 
-        switch (spellType)
-        {
-            case SpellType.Fire: // Addition
-                a = Random.Range(2, 12);
-                b = Random.Range(2, 12);
-                result = a + b;
-                symbol = "+";
-                break;
-
-            case SpellType.Water: // Subtraction
-                b = Random.Range(2, 10);
-                result = Random.Range(2, 10);
-                a = result + b; // Ensures positive subtraction (e.g., 8 - _ = 4)
-                symbol = "-";
-                break;
-
-            case SpellType.Lightning: // Multiplication
-                a = Random.Range(2, 9);
-                b = Random.Range(2, 9);
-                result = a * b;
-                symbol = "×";
-                break;
-        }
-
-        data.questionText = $"{a} {symbol} _ = {result}";
-        data.correctAnswer = b;
-
-        // Generate 3 distractors
-        List<int> options = new List<int> { b };
-        while (options.Count < 4)
-        {
-            int distractor = b + Random.Range(-4, 5);
-            if (distractor <= 0) distractor = Random.Range(1, 20);
-
-            if (!options.Contains(distractor))
-            {
-                options.Add(distractor);
-            }
-        }
-
-        // Shuffle quadrant positions
-        for (int i = 0; i < options.Count; i++)
-        {
-            int temp = options[i];
-            int randomIndex = Random.Range(i, options.Count);
-            options[i] = options[randomIndex];
-            options[randomIndex] = temp;
-        }
-
-        data.dialOptions = options;
         return data;
+    }
+
+    /// <summary>
+    /// Utility to shuffle quadrant positions so the answer moves randomly around the dial.
+    /// </summary>
+    private void ShuffleList(List<int> list)
+    {
+        for (int i = 0; i < list.Count; i++)
+        {
+            int temp = list[i];
+            int randomIndex = Random.Range(i, list.Count);
+            list[i] = list[randomIndex];
+            list[randomIndex] = temp;
+        }
     }
 }
