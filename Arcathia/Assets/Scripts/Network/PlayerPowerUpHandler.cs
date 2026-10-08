@@ -28,6 +28,11 @@ public class PlayerPowerUpHandler : NetworkBehaviour
     private int selectedIndex = 0;
     private SpellbookUI spellbookUI;
 
+    private bool IsMatchOver()
+    {
+        return MatchManager.Instance != null && MatchManager.Instance.isMatchOver.Value;
+    }
+
     public override void OnNetworkSpawn()
     {
         // Add listeners so we can print Debug.Logs when states change for ANY player
@@ -75,20 +80,20 @@ public class PlayerPowerUpHandler : NetworkBehaviour
 
     public void GivePowerUp(PowerUpType type)
     {
-        if (!IsServer) return;
+        if (!IsServer || IsMatchOver()) return;
         ReceivePowerUpClientRpc(type);
     }
 
     [ClientRpc]
     private void ReceivePowerUpClientRpc(PowerUpType type)
     {
-        if (!IsOwner) return;
+        if (!IsOwner || IsMatchOver()) return;
         TryStorePowerUp(type);
     }
 
     public bool TryStorePowerUp(PowerUpType type)
     {
-        if (!IsOwner || type == PowerUpType.None) return false;
+        if (!IsOwner || IsMatchOver() || type == PowerUpType.None) return false;
         if (storedPowerUps.Contains(type)) return false;
 
         storedPowerUps.Add(type);
@@ -101,7 +106,7 @@ public class PlayerPowerUpHandler : NetworkBehaviour
 
     public void CycleSelectedPowerUp(int direction)
     {
-        if (!IsOwner || storedPowerUps.Count <= 1) return;
+        if (!IsOwner || IsMatchOver() || storedPowerUps.Count <= 1) return;
         selectedIndex += direction;
         if (selectedIndex >= storedPowerUps.Count) selectedIndex = 0;
         else if (selectedIndex < 0) selectedIndex = storedPowerUps.Count - 1;
@@ -119,7 +124,7 @@ public class PlayerPowerUpHandler : NetworkBehaviour
 
     public void UseSelectedPowerUp()
     {
-        if (!IsOwner || storedPowerUps.Count == 0) return;
+        if (!IsOwner || IsMatchOver() || storedPowerUps.Count == 0) return;
 
         PowerUpType activeType = GetSelectedPowerUp();
         if (activeType == PowerUpType.None) return;
@@ -135,6 +140,8 @@ public class PlayerPowerUpHandler : NetworkBehaviour
 
     private void ExecutePowerUpEffect(PowerUpType type)
     {
+        if (IsMatchOver()) return;
+
         switch (type)
         {
             case PowerUpType.RuneLens:
@@ -154,6 +161,7 @@ public class PlayerPowerUpHandler : NetworkBehaviour
     [ServerRpc]
     private void ActivatePrismBarrierServerRpc(bool state)
     {
+        if (IsMatchOver()) return;
         isPrismBarrierActive.Value = state;
         if (state) StartCoroutine(PrismBarrierTimer());
     }
@@ -167,6 +175,7 @@ public class PlayerPowerUpHandler : NetworkBehaviour
     [ServerRpc]
     private void ActivateOverchargeServerRpc(bool state)
     {
+        if (IsMatchOver()) return;
         isOverchargeActive.Value = state;
         if (state) StartCoroutine(OverchargeTimer());
     }

@@ -9,6 +9,9 @@ public class PlayerHealth : NetworkBehaviour
 
     public int maxHealth = 100;
 
+    [Header("Score Settings")]
+    public int pointsPerKill = 1; // How many points to award the killer
+
     private PlayerPowerUpHandler powerUpHandler;
 
     private void Awake()
@@ -67,6 +70,57 @@ public class PlayerHealth : NetworkBehaviour
     private void Die(NetworkObject killer = null)
     {
         Debug.Log($"[PlayerHealth] {gameObject.name} was defeated by {(killer != null ? killer.name : "the environment")}!");
-        // Add death, ragdoll, or respawn logic here
+
+        // --- 1. HANDLE SCORING ---
+        // Ensure there is a killer, and the player didn't kill themselves (e.g., Backfire)
+        if (killer != null && killer != this.NetworkObject)
+        {
+            // Try to find the PlayerScore component on the killer
+            if (killer.TryGetComponent<PlayerScore>(out PlayerScore killerScore))
+            {
+                // Award the points to the killer
+                killerScore.AddScore(pointsPerKill);
+                Debug.Log($"[PlayerHealth] Awarded {pointsPerKill} points to {killer.name}!");
+            }
+        }
+
+        // --- 2. HANDLE RESPAWNING ---
+        Vector3 newSpawnPosition = transform.position;
+        Quaternion newSpawnRotation = transform.rotation;
+
+        if (PlayerSpawnManager.Instance != null)
+        {
+            Transform spawnPoint = PlayerSpawnManager.Instance.GetNextSpawnPoint();
+            if (spawnPoint != null)
+            {
+                newSpawnPosition = spawnPoint.position;
+                newSpawnRotation = spawnPoint.rotation;
+            }
+        }
+
+        // Move the player on the server
+        transform.position = newSpawnPosition;
+        transform.rotation = newSpawnRotation;
+
+        // Tell all clients to also move this player visually/physically to prevent jitter/rubber-banding
+        RespawnClientRpc(newSpawnPosition, newSpawnRotation);
+
+        // Reset the player's health so they can keep playing
+        currentHealth.Value = maxHealth;
+        Debug.Log($"[PlayerHealth] {gameObject.name} respawned!");
+    }
+
+    [ClientRpc]
+    private void RespawnClientRpc(Vector3 position, Quaternion rotation)
+    {
+        // Note: If you are using a CharacterController to move your player, 
+        // you MUST disable it before teleporting, then re-enable it.
+        CharacterController cc = GetComponent<CharacterController>();
+        if (cc != null) cc.enabled = false;
+
+        transform.position = position;
+        transform.rotation = rotation;
+
+        if (cc != null) cc.enabled = true;
     }
 }

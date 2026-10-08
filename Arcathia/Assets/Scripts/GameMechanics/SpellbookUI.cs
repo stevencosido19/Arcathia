@@ -55,10 +55,35 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     private PlayerMagicNetwork localMagicNetwork;
     private PlayerHealth localPlayerHealth;
 
+    private const float LookupRetryInterval = 0.5f;
+    private float nextMagicLookupTime = 0f;
+
+    private static readonly int SpellTypeCount = System.Enum.GetValues(typeof(SpellType)).Length;
+
     private SpellType currentSpellType = SpellType.Fire;
 
-    // Track state of Rune Lens exclusions per problem
-    private readonly HashSet<int> disabledQuadrantIndices = new HashSet<int>();
+    // Track state of Rune Lens exclusions PER SPELL TYPE
+    private readonly Dictionary<SpellType, HashSet<int>> disabledQuadrantsPerSpell = new Dictionary<SpellType, HashSet<int>>()
+    {
+        { SpellType.Fire, new HashSet<int>() },
+        { SpellType.Water, new HashSet<int>() },
+        { SpellType.Lightning, new HashSet<int>() }
+    };
+
+    private bool IsMatchOver()
+    {
+        return MatchManager.Instance != null && MatchManager.Instance.isMatchOver.Value;
+    }
+
+    private HashSet<int> GetDisabledIndices(SpellType type)
+    {
+        if (!disabledQuadrantsPerSpell.TryGetValue(type, out var set))
+        {
+            set = new HashSet<int>();
+            disabledQuadrantsPerSpell[type] = set;
+        }
+        return set;
+    }
 
     void Start()
     {
@@ -94,6 +119,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     void Update()
     {
+        if (IsMatchOver()) return;
         HandleFireCooldown();
     }
 
@@ -109,14 +135,14 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void ToggleBookMode()
     {
+        if (IsMatchOver()) return;
         currentBookMode = (currentBookMode == BookMode.Spells) ? BookMode.PowerUps : BookMode.Spells;
-        disabledQuadrantIndices.Clear();
         UpdateBookUI();
     }
 
     public void AddRuneToInventory(SpellType type)
     {
-        if (equationGenerator == null) return;
+        if (IsMatchOver() || equationGenerator == null) return;
 
         MathEquationGenerator.EquationData newEq = equationGenerator.GenerateProblem(type);
         if (newEq == null) return;
@@ -261,6 +287,8 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void OnPointerDown(PointerEventData eventData)
     {
+        if (IsMatchOver()) return;
+
         touchStartPos = eventData.position;
         swipeHandled = false;
 
@@ -278,7 +306,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (swipeHandled) return;
+        if (IsMatchOver() || swipeHandled) return;
 
         Vector2 dragDelta = eventData.position - touchStartPos;
 
@@ -300,15 +328,16 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void CyclePage(int direction)
     {
+        if (IsMatchOver()) return;
+
         if (currentBookMode == BookMode.Spells)
         {
-            int totalTypes = System.Enum.GetValues(typeof(SpellType)).Length;
+            int totalTypes = SpellTypeCount;
             int currentIndex = (int)currentSpellType;
 
             currentIndex = (currentIndex + direction + totalTypes) % totalTypes;
             currentSpellType = (SpellType)currentIndex;
 
-            disabledQuadrantIndices.Clear();
             UpdateBookUI();
         }
         else if (currentBookMode == BookMode.PowerUps)
@@ -324,6 +353,8 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     private void OnSpellbookDoubleTapped()
     {
+        if (IsMatchOver()) return;
+
         if (currentBookMode == BookMode.PowerUps)
         {
             PlayerPowerUpHandler handler = GetLocalPlayerPowerUp();
@@ -338,6 +369,8 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void ApplyRuneLensEffect()
     {
+        if (IsMatchOver()) return;
+
         MathEquationGenerator.EquationData activeEq = currentSpellType switch
         {
             SpellType.Fire => currentFireEquation,
@@ -355,10 +388,11 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
                 wrongOptionIndices.Add(i);
         }
 
+        HashSet<int> currentDisabled = GetDisabledIndices(currentSpellType);
         for (int i = 0; i < 2 && wrongOptionIndices.Count > 0; i++)
         {
             int randomIndex = Random.Range(0, wrongOptionIndices.Count);
-            disabledQuadrantIndices.Add(wrongOptionIndices[randomIndex]);
+            currentDisabled.Add(wrongOptionIndices[randomIndex]);
             wrongOptionIndices.RemoveAt(randomIndex);
         }
 
@@ -369,7 +403,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     private void FetchNewFireProblem()
     {
-        disabledQuadrantIndices.Clear();
+        GetDisabledIndices(SpellType.Fire).Clear();
         if (equationGenerator != null)
             currentFireEquation = equationGenerator.GenerateProblem(SpellType.Fire);
     }
@@ -398,11 +432,13 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         if (eq == null) return;
         if (equationDisplayText != null) equationDisplayText.text = eq.questionText;
 
+        HashSet<int> currentDisabled = GetDisabledIndices(currentSpellType);
+
         for (int i = 0; i < 4; i++)
         {
             if (i < quadrantTexts.Count && quadrantTexts[i] != null)
             {
-                if (disabledQuadrantIndices.Contains(i))
+                if (currentDisabled.Contains(i))
                 {
                     quadrantTexts[i].text = "<color=red>X</color>";
                 }
@@ -428,7 +464,11 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     private void OnQuadrantSelected(int index)
     {
-        if (disabledQuadrantIndices.Contains(index)) return;
+        if (IsMatchOver()) return;
+
+        HashSet<int> currentDisabled = GetDisabledIndices(currentSpellType);
+
+        if (currentDisabled.Contains(index)) return;
         if (currentSpellType == SpellType.Fire && fireCooldownTimer > 0) return;
         if (currentSpellType == SpellType.Water && waterRuneQueue.Count == 0) return;
         if (currentSpellType == SpellType.Lightning && lightningRuneQueue.Count == 0) return;
@@ -450,7 +490,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
             PlayerMagicNetwork localPlayer = GetLocalPlayerMagic();
             if (localPlayer != null) localPlayer.AddSpellAmmo(currentSpellType, 1);
 
-            disabledQuadrantIndices.Clear();
+            currentDisabled.Clear();
 
             if (currentSpellType == SpellType.Fire) fireCooldownTimer = fireCooldownTime;
             else if (currentSpellType == SpellType.Water) waterRuneQueue.Dequeue();
@@ -463,7 +503,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
             PlayerHealth localHealth = GetLocalPlayerHealth();
             if (localHealth != null) localHealth.ApplyBackfireServerRpc(wrongAnswerDamage);
 
-            disabledQuadrantIndices.Clear();
+            currentDisabled.Clear();
 
             if (currentSpellType == SpellType.Fire) FetchNewFireProblem();
             else if (currentSpellType == SpellType.Water && waterRuneQueue.Count > 0) waterRuneQueue.Dequeue();
@@ -475,6 +515,8 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     private void OnAttackButtonPressed()
     {
+        if (IsMatchOver()) return;
+
         PlayerMagicNetwork localPlayer = GetLocalPlayerMagic();
         if (localPlayer != null)
         {
@@ -485,7 +527,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     private void UpdateDialState()
     {
-        if (currentBookMode != BookMode.Spells) return;
+        if (currentBookMode != BookMode.Spells || IsMatchOver()) return;
 
         bool hasRuneOrActive = currentSpellType switch
         {
@@ -495,16 +537,18 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
             _ => false
         };
 
+        HashSet<int> currentDisabled = GetDisabledIndices(currentSpellType);
+
         for (int i = 0; i < quadrantButtons.Count; i++)
         {
             if (quadrantButtons[i] != null)
             {
-                bool isBlockedByLens = disabledQuadrantIndices.Contains(i);
+                bool isBlockedByLens = currentDisabled.Contains(i);
                 quadrantButtons[i].interactable = hasRuneOrActive && !isBlockedByLens;
             }
         }
 
-        PlayerMagicNetwork localPlayer = GetLocalPlayerMagic();
+        PlayerMagicNetwork localPlayer = GetLocalPlayerMagic(true);
         bool hasAmmo = localPlayer != null && localPlayer.HasAmmo(currentSpellType);
         if (attackButton != null) attackButton.interactable = hasAmmo;
 
@@ -518,9 +562,15 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     // --- CACHED LOCAL PLAYER GETTERS ---
 
-    private PlayerMagicNetwork GetLocalPlayerMagic()
+    private PlayerMagicNetwork GetLocalPlayerMagic(bool throttled = false)
     {
         if (localMagicNetwork != null) return localMagicNetwork;
+
+        if (throttled)
+        {
+            if (Time.unscaledTime < nextMagicLookupTime) return null;
+            nextMagicLookupTime = Time.unscaledTime + LookupRetryInterval;
+        }
 
         PlayerMagicNetwork[] players = FindObjectsByType<PlayerMagicNetwork>(FindObjectsSortMode.None);
         foreach (PlayerMagicNetwork p in players)
