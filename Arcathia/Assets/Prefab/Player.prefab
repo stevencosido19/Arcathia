@@ -1099,7 +1099,7 @@ GameObject:
   - component: {fileID: 5273497086136828544}
   m_Layer: 0
   m_Name: PlayerCamera
-  m_TagString: Untagged
+  m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -3138,6 +3138,12 @@ MonoBehaviour:
   fireProjectilePrefab: {fileID: 2684134513715926368, guid: e26a65b6874894e4b98fa59637422934, type: 3}
   waterProjectilePrefab: {fileID: 5295057511820168833, guid: 75e60ac4b4b6ab84ab6b90cfcd58b922, type: 3}
   lightningProjectilePrefab: {fileID: 2842848715062395188, guid: 1e0333437fbba3249ae784384687457f, type: 3}
+  aimLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
+  maxAimDistance: 100
+  crosshairViewportPoint: {x: 0.5, y: 0.5}
+  debugAim: 0
   maxAmmo: 6
 --- !u!114 &3087285356256863753
 MonoBehaviour:
@@ -3152,13 +3158,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
-  allowSelfDamageScore: 0
   currentHealth:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 100
+  maxHealth: 100
+  pointsPerKill: 1
 --- !u!114 &-1558075404931352423
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3265,12 +3271,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerPowerUpHandler
   ShowTopMostFoldoutHeaderGroup: 1
-  hasRuneLens: 0
-  hasPrismBarrier: 0
-  hasOverchargeMatrix: 0
-  isPrismBarrierActive: 0
-  isOverchargeActive: 0
-  spellbookUI: {fileID: 0}
+  isPrismBarrierActive:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  isOverchargeActive:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  prismBarrierDuration: 10
+  overchargeDuration: 10
 --- !u!1 &8099597165931184373
 GameObject:
   m_ObjectHideFlags: 0
