@@ -12,10 +12,18 @@ public class PowerUpItem : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        // Reset in case this object is ever reused from a pool.
+        consumed = false;
+
         // DIAGNOSTIC: remove once the ghost-item problem is solved.
-        // If a client never prints this for an item it can see, that item is a local
-        // "ghost" copy that the server doesn't know about.
+        // Read this in the CLIENT's console, not the host's.
         Debug.Log($"[PowerUpItem] '{name}' spawned on network. NetworkObjectId={NetworkObjectId}, IsServer={IsServer}");
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        // DIAGNOSTIC: remove once the ghost-item problem is solved.
+        Debug.Log($"[PowerUpItem] '{name}' despawned. NetworkObjectId={NetworkObjectId}, IsServer={IsServer}");
     }
 
     private void OnTriggerEnter(Collider other)

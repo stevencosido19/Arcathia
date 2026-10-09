@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using UnityEngine;
 using Unity.Netcode;
+using UnityEngine;
 
 public class PowerUpSpawner : NetworkBehaviour
 {
@@ -25,45 +25,95 @@ public class PowerUpSpawner : NetworkBehaviour
     public int maxActivePowerUps = 3;
 
     private List<GameObject> activePowerUps = new List<GameObject>();
-    private bool isSpawningStarted = false;
 
-    private void Start()
+    private bool IsMatchOver()
     {
-        StartSpawningLoop();
+        return MatchManager.Instance != null && MatchManager.Instance.isMatchOver.Value;
+    }
+
+    private void Awake()
+    {
+        // Safety check to warn if NetworkObject component is missing on this GameObject
+        if (GetComponent<NetworkObject>() == null)
+        {
+            Debug.LogError($"[PowerUpSpawner] '{gameObject.name}' is MISSING a NetworkObject component! OnNetworkSpawn() will NEVER fire.");
+        }
     }
 
     public override void OnNetworkSpawn()
     {
-        StartSpawningLoop();
+        if (!IsServer)
+        {
+            Debug.Log("[PowerUpSpawner] Running on Client - Spawning loop ignored.");
+            return;
+        }
+
+        Debug.Log($"<color=green>[PowerUpSpawner] Server detected! Starting spawn loop in {initialSpawnDelay}s every {spawnInterval}s.</color>");
+        InvokeRepeating(nameof(TrySpawnPowerUp), initialSpawnDelay, spawnInterval);
     }
 
-    private void StartSpawningLoop()
+    public override void OnNetworkDespawn()
     {
-        if (isSpawningStarted) return;
-        isSpawningStarted = true;
-        InvokeRepeating(nameof(TrySpawnPowerUp), initialSpawnDelay, spawnInterval);
+        if (IsServer)
+        {
+            CancelInvoke(nameof(TrySpawnPowerUp));
+        }
     }
 
     private void TrySpawnPowerUp()
     {
+        if (!IsServer) return;
+
+        if (IsMatchOver())
+        {
+            Debug.Log("[PowerUpSpawner] Match is over. Skipping spawn.");
+            return;
+        }
+
         activePowerUps.RemoveAll(p => p == null);
 
-        if (activePowerUps.Count >= maxActivePowerUps) return;
-        if (dropTable.Count == 0 || spawnPoints.Count == 0) return;
+        if (activePowerUps.Count >= maxActivePowerUps)
+        {
+            // Already at capacity
+            return;
+        }
+
+        if (dropTable.Count == 0 || spawnPoints.Count == 0)
+        {
+            Debug.LogWarning("[PowerUpSpawner] Cannot spawn! DropTable or SpawnPoints list is EMPTY in Inspector.");
+            return;
+        }
 
         GameObject selectedPrefab = GetWeightedRandomPowerUp();
         Transform targetPoint = GetAvailableSpawnPoint();
 
-        if (selectedPrefab == null || targetPoint == null) return;
+        if (selectedPrefab == null)
+        {
+            Debug.LogWarning("[PowerUpSpawner] GetWeightedRandomPowerUp() returned null.");
+            return;
+        }
 
+        if (targetPoint == null)
+        {
+            // All spawn spots are occupied by existing power-ups
+            return;
+        }
+
+        // 1. Instantiate on Server
         GameObject spawned = Instantiate(selectedPrefab, targetPoint.position, targetPoint.rotation);
-        activePowerUps.Add(spawned);
-
         NetworkObject netObj = spawned.GetComponent<NetworkObject>();
 
-        if (netObj != null && NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer)
+        if (netObj != null)
         {
-            if (!netObj.IsSpawned) netObj.Spawn();
+            // 2. Spawn across Netcode
+            netObj.Spawn();
+            activePowerUps.Add(spawned);
+            Debug.Log($"<color=cyan>[PowerUpSpawner] Successfully spawned '{selectedPrefab.name}' at {targetPoint.name}. Active count: {activePowerUps.Count}</color>");
+        }
+        else
+        {
+            Debug.LogError($"[PowerUpSpawner] Prefab '{selectedPrefab.name}' is missing a NetworkObject component!");
+            Destroy(spawned);
         }
     }
 

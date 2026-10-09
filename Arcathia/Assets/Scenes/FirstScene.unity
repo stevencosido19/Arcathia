@@ -5407,6 +5407,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1689982144}
+  - component: {fileID: 1689982146}
   - component: {fileID: 1689982145}
   m_Layer: 0
   m_Name: PowerupSpawnManager
@@ -5467,6 +5468,33 @@ MonoBehaviour:
   initialSpawnDelay: 3
   spawnInterval: 15
   maxActivePowerUps: 3
+--- !u!114 &1689982146
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1689982143}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 3939855525
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  m_InScenePlacedDisabledByDefault: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  m_InScenePlaced: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 0
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!1 &1718155924
 GameObject:
   m_ObjectHideFlags: 0
