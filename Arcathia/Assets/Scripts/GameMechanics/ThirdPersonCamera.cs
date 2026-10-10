@@ -9,7 +9,7 @@ public class ThirdPersonCamera : NetworkBehaviour
     public Vector3 offset = new Vector3(0f, 2f, -4f);
 
     [Header("Rotation Settings")]
-    public float rotationSpeed = 0.2f; // Adjusted scale for New Input System delta values
+    public float rotationSpeed = 0.2f;
     public float minVerticalAngle = -20f;
     public float maxVerticalAngle = 60f;
 
@@ -18,20 +18,35 @@ public class ThirdPersonCamera : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        // If this camera belongs to a remote player, disable this script
+        // If this camera belongs to a remote player, disable its camera and audio listener
         if (!IsOwner)
         {
+            var cam = GetComponent<Camera>();
+            if (cam != null) cam.enabled = false;
+
+            var listener = GetComponent<AudioListener>();
+            if (listener != null) listener.enabled = false;
+
             enabled = false;
             return;
         }
 
         // Automatically find the local player object if target is unassigned
-        if (target == null && NetworkManager.Singleton != null && NetworkManager.Singleton.LocalClient != null)
+        if (target == null)
         {
-            var playerObj = NetworkManager.Singleton.LocalClient.PlayerObject;
-            if (playerObj != null)
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.LocalClient != null)
             {
-                target = playerObj.transform;
+                var playerObj = NetworkManager.Singleton.LocalClient.PlayerObject;
+                if (playerObj != null)
+                {
+                    target = playerObj.transform;
+                }
+            }
+
+            // Fallback to parent root if NetworkManager reference isn't ready
+            if (target == null)
+            {
+                target = transform.root;
             }
         }
     }
@@ -65,7 +80,8 @@ public class ThirdPersonCamera : NetworkBehaviour
         Quaternion rotation = Quaternion.Euler(currentY, currentX, 0);
         Vector3 position = target.position + rotation * offset;
 
-        transform.rotation = rotation;
+        // Apply world position and rotation directly while staying a child of the prefab
         transform.position = position;
+        transform.rotation = rotation;
     }
 }

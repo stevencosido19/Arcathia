@@ -3172,7 +3172,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3904397011
+  GlobalObjectIdHash: 2499337959
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -3368,8 +3368,6 @@ MonoBehaviour:
   accessoryHolder: {fileID: 5165624594363149617}
   robeHolder: {fileID: 7134809383823275579}
   wandHolder: {fileID: 8103581638063236464}
-  playerCamera: {fileID: 4260112714974373224}
-  invisibleLayerName: LocalCosmetics
 --- !u!114 &6758617644769223595
 MonoBehaviour:
   m_ObjectHideFlags: 0

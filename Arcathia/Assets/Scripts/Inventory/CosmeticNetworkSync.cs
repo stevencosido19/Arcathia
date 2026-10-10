@@ -15,10 +15,6 @@ public class CosmeticNetworkSync : NetworkBehaviour
     public Transform robeHolder;
     public Transform wandHolder;
 
-    [Header("First Person Setup")]
-    public Camera playerCamera;
-    public string invisibleLayerName = "LocalCosmetics";
-
     // NGO requires FixedString32Bytes for string syncing
     private NetworkVariable<FixedString32Bytes> netHat = new NetworkVariable<FixedString32Bytes>(writePerm: NetworkVariableWritePermission.Server);
     private NetworkVariable<FixedString32Bytes> netFace = new NetworkVariable<FixedString32Bytes>(writePerm: NetworkVariableWritePermission.Server);
@@ -36,20 +32,13 @@ public class CosmeticNetworkSync : NetworkBehaviour
 
         if (IsOwner)
         {
-            // 1. Tell the camera to IGNORE the LocalCosmetics layer
-            if (playerCamera != null)
-            {
-                int layerToIgnore = LayerMask.NameToLayer(invisibleLayerName);
-                playerCamera.cullingMask &= ~(1 << layerToIgnore); 
-            }
-
-            // 2. Read local save file and tell the server what we are wearing
+            // Read local save file and tell the server what we are wearing
             PlayerSaveData data = SaveManager.LoadData();
             UpdateCosmeticsServerRpc(
-                data.equippedHat, 
-                data.equippedFace, 
-                data.equippedAccessory, 
-                data.equippedRobe, 
+                data.equippedHat,
+                data.equippedFace,
+                data.equippedAccessory,
+                data.equippedRobe,
                 data.equippedWand
             );
         }
@@ -89,27 +78,6 @@ public class CosmeticNetworkSync : NetworkBehaviour
         {
             GameObject cosmeticObj = holder.GetChild(item.modelIndex).gameObject;
             cosmeticObj.SetActive(true);
-
-            // If this is our local player, change the cosmetic's layer so the camera hides it
-            if (IsOwner)
-            {
-                SetLayerRecursively(cosmeticObj, LayerMask.NameToLayer(invisibleLayerName));
-            }
-        }
-    }
-
-    private void SetLayerRecursively(GameObject obj, int newLayer)
-    {
-        if (obj == null) return;
-        
-        obj.layer = newLayer;
-        
-        foreach (Transform child in obj.transform)
-        {
-            if (child != null)
-            {
-                SetLayerRecursively(child.gameObject, newLayer);
-            }
         }
     }
 }
