@@ -7,24 +7,20 @@ public class PlayerController : NetworkBehaviour
 {
     [Header("Movement Settings")]
     public float moveSpeed = 5.0f;
+    public float rotationSpeed = 15.0f; // Smoothness for turning toward movement direction
 
     [Header("Jump & Fall Customization")]
     public float jumpSpeed = 8.0f;
     public float baseGravity = -9.81f;
     public float jumpGravityMultiplier = 1.0f;
-    public float fallGravityMultiplier = 1.2f; // Reduced from 2.0f to prevent physics clipping
+    public float fallGravityMultiplier = 1.2f;
     public float maxFallSpeed = 25.0f;
-
-    [Header("Camera Settings")]
-    public Camera playerCamera;
-    public float mouseSensitivity = 0.15f;
 
     private CharacterController controller;
     private MobileTouchInput touchInputHandler;
 
     private Vector3 velocity;
     private bool isGrounded;
-    private float xRotation = 0f;
 
     private void Awake()
     {
@@ -34,11 +30,6 @@ public class PlayerController : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        if (playerCamera != null)
-        {
-            playerCamera.enabled = IsOwner;
-        }
-
         AudioListener listener = GetComponentInChildren<AudioListener>();
         if (listener != null)
         {
@@ -50,11 +41,9 @@ public class PlayerController : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        // GUARD: If controller is disabled (e.g. during teleport), halt movement processing
         if (controller == null || !controller.enabled) return;
 
         HandleMovement();
-        HandleCameraLook();
     }
 
     private void HandleMovement()
@@ -90,11 +79,28 @@ public class PlayerController : NetworkBehaviour
             moveZ += touchInputHandler.MoveInput.y;
         }
 
-        // Clamp total movement input
         Vector2 combinedInput = Vector2.ClampMagnitude(new Vector2(moveX, moveZ), 1f);
 
-        Vector3 move = transform.right * combinedInput.x + transform.forward * combinedInput.y;
-        controller.Move(move * moveSpeed * Time.deltaTime);
+        if (combinedInput.sqrMagnitude > 0.001f && Camera.main != null)
+        {
+            // Calculate movement relative to the camera's horizontal view directions
+            Transform camTransform = Camera.main.transform;
+            Vector3 camForward = camTransform.forward;
+            Vector3 camRight = camTransform.right;
+            camForward.y = 0f;
+            camRight.y = 0f;
+            camForward.Normalize();
+            camRight.Normalize();
+
+            Vector3 moveDir = (camForward * combinedInput.y + camRight * combinedInput.x).normalized;
+
+            // Move the character
+            controller.Move(moveDir * moveSpeed * Time.deltaTime);
+
+            // Rotate character smoothly toward movement direction
+            Quaternion targetRotation = Quaternion.LookRotation(moveDir);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        }
 
         // Dynamic Gravity Calculations
         if (velocity.y > 0)
@@ -110,30 +116,6 @@ public class PlayerController : NetworkBehaviour
         controller.Move(velocity * Time.deltaTime);
     }
 
-    private void HandleCameraLook()
-    {
-        if (playerCamera == null) return;
-
-        Vector2 lookDelta = Vector2.zero;
-
-        if (touchInputHandler != null)
-        {
-            lookDelta = touchInputHandler.LookInput;
-        }
-
-        float lookX = lookDelta.x * mouseSensitivity;
-        float lookY = lookDelta.y * mouseSensitivity;
-
-        xRotation -= lookY;
-        xRotation = Mathf.Clamp(xRotation, -80f, 80f);
-        playerCamera.transform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
-
-        if (Mathf.Abs(lookX) > 0.001f)
-        {
-            transform.Rotate(Vector3.up * lookX);
-        }
-    }
-
     public void TriggerJump()
     {
         if (!IsOwner) return;
@@ -144,9 +126,6 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// Resets fall speed when teleporting to prevent accumulated gravity from clipping the floor.
-    /// </summary>
     public void ResetVelocity()
     {
         velocity = Vector3.zero;
