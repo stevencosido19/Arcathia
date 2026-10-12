@@ -55,6 +55,11 @@ public class ThirdPersonCamera : NetworkBehaviour
     {
         if (target == null) return;
 
+        // -------------------------------------------------------------
+        // Freeze camera rotation completely while customizing the HUD layout
+        // -------------------------------------------------------------
+        if (HUDLayoutManager.IsLayoutEditing) return;
+
         Vector2 inputDelta = Vector2.zero;
 
         // Support mobile touch dragging using the New Input System

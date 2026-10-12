@@ -40,8 +40,10 @@ public class PlayerController : NetworkBehaviour
     private void Update()
     {
         if (!IsOwner) return;
-
         if (controller == null || !controller.enabled) return;
+
+        // Freeze player movement and inputs completely while customizing the HUD layout
+        if (HUDLayoutManager.IsLayoutEditing) return;
 
         HandleMovement();
     }
@@ -119,6 +121,9 @@ public class PlayerController : NetworkBehaviour
     public void TriggerJump()
     {
         if (!IsOwner) return;
+
+        // Block jumps if editing layout
+        if (HUDLayoutManager.IsLayoutEditing) return;
 
         if (isGrounded)
         {

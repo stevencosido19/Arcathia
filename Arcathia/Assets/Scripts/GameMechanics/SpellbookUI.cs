@@ -136,6 +136,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     public void ToggleBookMode()
     {
         if (IsMatchOver()) return;
+        if (HUDLayoutManager.IsLayoutEditing) return; // HUD EDIT MODE: ignore gameplay input
         currentBookMode = (currentBookMode == BookMode.Spells) ? BookMode.PowerUps : BookMode.Spells;
         UpdateBookUI();
     }
@@ -306,7 +307,8 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (IsMatchOver() || swipeHandled) return;
+        // HUD EDIT MODE: dragging the spellbook to move it must not also flip pages
+        if (IsMatchOver() || HUDLayoutManager.IsLayoutEditing || swipeHandled) return;
 
         Vector2 dragDelta = eventData.position - touchStartPos;
 
@@ -354,6 +356,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     private void OnSpellbookDoubleTapped()
     {
         if (IsMatchOver()) return;
+        if (HUDLayoutManager.IsLayoutEditing) return; // HUD EDIT MODE: don't use power-ups while rearranging
 
         if (currentBookMode == BookMode.PowerUps)
         {
@@ -465,6 +468,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     private void OnQuadrantSelected(int index)
     {
         if (IsMatchOver()) return;
+        if (HUDLayoutManager.IsLayoutEditing) return; // HUD EDIT MODE: ignore gameplay input
 
         HashSet<int> currentDisabled = GetDisabledIndices(currentSpellType);
 
@@ -516,6 +520,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     private void OnAttackButtonPressed()
     {
         if (IsMatchOver()) return;
+        if (HUDLayoutManager.IsLayoutEditing) return; // HUD EDIT MODE: ignore gameplay input
 
         PlayerMagicNetwork localPlayer = GetLocalPlayerMagic();
         if (localPlayer != null)

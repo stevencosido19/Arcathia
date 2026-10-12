@@ -19,6 +19,15 @@ public class MobileTouchInput : MonoBehaviour
 
     private void Update()
     {
+        // -------------------------------------------------------------
+        // Freeze all touch input processing while editing the HUD layout
+        // -------------------------------------------------------------
+        if (HUDLayoutManager.IsLayoutEditing)
+        {
+            ResetAllInputs();
+            return;
+        }
+
         LookInput = Vector2.zero;
 
         Touchscreen touchscreen = Touchscreen.current;
@@ -113,7 +122,6 @@ public class MobileTouchInput : MonoBehaviour
         }
 
         // --- SAFETY RECOVERY FIXES ---
-        // Force-clear touch IDs if the physical touch list is empty or fingers lifted
         if (touches.Count == 0)
         {
             ResetAllInputs();
