@@ -6,20 +6,23 @@ using UnityEngine.InputSystem;
 public class PlayerController : NetworkBehaviour
 {
     [Header("Movement Settings")]
-    public float moveSpeed = 5.0f;
-    public float rotationSpeed = 15.0f; // Smoothness for turning toward movement direction
+    public float moveSpeed = 6.0f;
+    public float rotationSpeed = 15.0f;
 
     [Header("Jump & Fall Customization")]
-    public float jumpSpeed = 8.0f;
-    public float baseGravity = -9.81f;
+    public float jumpSpeed = 8.5f;
+    [Tooltip("Base gravity. In video games, -18 to -25 feels much more natural than -9.81.")]
+    public float baseGravity = -20.0f;
     public float jumpGravityMultiplier = 1.0f;
-    public float fallGravityMultiplier = 1.2f;
-    public float maxFallSpeed = 25.0f;
+    [Tooltip("Multiplier applied when falling down. 2.0x to 2.5x gives snappy, accelerating falls.")]
+    public float fallGravityMultiplier = 2.2f;
+    [Tooltip("Maximum downward speed before terminal velocity.")]
+    public float maxFallSpeed = 45.0f;
 
     private CharacterController controller;
     private MobileTouchInput touchInputHandler;
 
-    private Vector3 velocity;
+    private Vector3 verticalVelocity;
     private bool isGrounded;
 
     private void Awake()
@@ -42,7 +45,6 @@ public class PlayerController : NetworkBehaviour
         if (!IsOwner) return;
         if (controller == null || !controller.enabled) return;
 
-        // Freeze player movement and inputs completely while customizing the HUD layout
         if (HUDLayoutManager.IsLayoutEditing) return;
 
         HandleMovement();
@@ -50,17 +52,19 @@ public class PlayerController : NetworkBehaviour
 
     private void HandleMovement()
     {
+        // Unity's isGrounded flag
         isGrounded = controller.isGrounded;
 
-        if (isGrounded && velocity.y < 0)
+        // Ground snap force only if grounded and not currently jumping upward
+        if (isGrounded && verticalVelocity.y < 0)
         {
-            velocity.y = -2f; // Ground stick force
+            verticalVelocity.y = -3.0f; // Firm ground stick force
         }
 
         float moveX = 0f;
         float moveZ = 0f;
 
-        // 1. WASD Keyboard Inputs
+        // 1. Keyboard Inputs
         if (Keyboard.current != null)
         {
             if (Keyboard.current.wKey.isPressed) moveZ += 1f;
@@ -74,7 +78,7 @@ public class PlayerController : NetworkBehaviour
             }
         }
 
-        // 2. Read Touch Drag Vector from Left Side of Screen
+        // 2. Touch Inputs
         if (touchInputHandler != null)
         {
             moveX += touchInputHandler.MoveInput.x;
@@ -82,10 +86,10 @@ public class PlayerController : NetworkBehaviour
         }
 
         Vector2 combinedInput = Vector2.ClampMagnitude(new Vector2(moveX, moveZ), 1f);
+        Vector3 horizontalMove = Vector3.zero;
 
         if (combinedInput.sqrMagnitude > 0.001f && Camera.main != null)
         {
-            // Calculate movement relative to the camera's horizontal view directions
             Transform camTransform = Camera.main.transform;
             Vector3 camForward = camTransform.forward;
             Vector3 camRight = camTransform.right;
@@ -95,44 +99,63 @@ public class PlayerController : NetworkBehaviour
             camRight.Normalize();
 
             Vector3 moveDir = (camForward * combinedInput.y + camRight * combinedInput.x).normalized;
-
-            // Move the character
-            controller.Move(moveDir * moveSpeed * Time.deltaTime);
+            horizontalMove = moveDir * moveSpeed;
 
             // Rotate character smoothly toward movement direction
             Quaternion targetRotation = Quaternion.LookRotation(moveDir);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
 
-        // Dynamic Gravity Calculations
-        if (velocity.y > 0)
+        // 3. Dynamic Gravity Acceleration
+        if (verticalVelocity.y > 0)
         {
-            velocity.y += baseGravity * jumpGravityMultiplier * Time.deltaTime;
+            // Upward arc of jump
+            verticalVelocity.y += baseGravity * jumpGravityMultiplier * Time.deltaTime;
         }
         else
         {
-            velocity.y += baseGravity * fallGravityMultiplier * Time.deltaTime;
+            // Downward fall - accelerate heavier toward the ground
+            verticalVelocity.y += baseGravity * fallGravityMultiplier * Time.deltaTime;
         }
 
-        velocity.y = Mathf.Max(velocity.y, -maxFallSpeed);
-        controller.Move(velocity * Time.deltaTime);
+        // Clamp to terminal velocity
+        verticalVelocity.y = Mathf.Max(verticalVelocity.y, -maxFallSpeed);
+
+        // 4. COMBINE into ONE single Move call (Crucial fix!)
+        Vector3 totalMovement = horizontalMove + verticalVelocity;
+        controller.Move(totalMovement * Time.deltaTime);
     }
 
     public void TriggerJump()
     {
         if (!IsOwner) return;
-
-        // Block jumps if editing layout
         if (HUDLayoutManager.IsLayoutEditing) return;
 
         if (isGrounded)
         {
-            velocity.y = jumpSpeed;
+            verticalVelocity.y = jumpSpeed;
         }
     }
 
     public void ResetVelocity()
     {
-        velocity = Vector3.zero;
+        verticalVelocity = Vector3.zero;
+    }
+
+    public void Teleport(Vector3 position, Quaternion rotation)
+    {
+        StartCoroutine(TeleportRoutine(position, rotation));
+    }
+
+    private System.Collections.IEnumerator TeleportRoutine(Vector3 position, Quaternion rotation)
+    {
+        if (controller != null) controller.enabled = false;
+        ResetVelocity();
+
+        transform.SetPositionAndRotation(position, rotation);
+
+        yield return new WaitForFixedUpdate();
+
+        if (controller != null) controller.enabled = true;
     }
 }

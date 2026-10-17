@@ -1,3 +1,5 @@
+using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -22,7 +24,7 @@ public class MainMenuManager : MonoBehaviour
     [Header("Scene Build Settings Names")]
     public string campaignSceneName = "CampaignStage1";
     public string multiplayerLobbySceneName = "MultiplayerLobby";
-    public string shopSceneName = "ShopScene"; // ADDED FOR COSMETICS
+    public string shopSceneName = "ShopScene";
 
     void Start()
     {
@@ -43,7 +45,6 @@ public class MainMenuManager : MonoBehaviour
 
     private void OnCustomizeButtonPressed()
     {
-        // Loads the Shop Scene
         if (!string.IsNullOrEmpty(shopSceneName))
         {
             SceneManager.LoadScene(shopSceneName);
@@ -63,12 +64,48 @@ public class MainMenuManager : MonoBehaviour
 
     private void OnCampaignButtonPressed()
     {
-        if (!string.IsNullOrEmpty(campaignSceneName)) SceneManager.LoadScene(campaignSceneName);
+        if (string.IsNullOrEmpty(campaignSceneName)) return;
+
+        if (NetworkManager.Singleton != null)
+        {
+            // Bind to local loopback address for single-player campaign
+            var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+            if (transport != null)
+            {
+                transport.SetConnectionData("127.0.0.1", 7777, "127.0.0.1");
+            }
+
+            // 1. Start the game silently as Host
+            if (NetworkManager.Singleton.StartHost())
+            {
+                Debug.Log($"[Campaign] Starting Campaign Mode as Host. Loading: {campaignSceneName}");
+
+                // 2. Load the level via Netcode SceneManager so player and network objects sync
+                NetworkManager.Singleton.SceneManager.LoadScene(campaignSceneName, LoadSceneMode.Single);
+            }
+            else
+            {
+                Debug.LogError("[Campaign] Failed to start local Host for Campaign!");
+            }
+        }
+        else
+        {
+            Debug.LogError("[MainMenu] NetworkManager was not found! Make sure the NetworkManager prefab is in the MainMenu scene.");
+        }
     }
 
     private void OnMultiplayerButtonPressed()
     {
-        if (!string.IsNullOrEmpty(multiplayerLobbySceneName)) SceneManager.LoadScene(multiplayerLobbySceneName);
+        if (!string.IsNullOrEmpty(multiplayerLobbySceneName))
+        {
+            // Make sure Netcode isn't already running when heading to the lobby
+            if (NetworkManager.Singleton != null && (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsServer))
+            {
+                NetworkManager.Singleton.Shutdown();
+            }
+
+            SceneManager.LoadScene(multiplayerLobbySceneName);
+        }
     }
 
     private void OnBackButtonPressed()

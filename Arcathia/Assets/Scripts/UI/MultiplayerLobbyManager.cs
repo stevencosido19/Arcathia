@@ -33,6 +33,12 @@ public class MultiplayerLobbyManager : MonoBehaviour
 
     void Start()
     {
+        // If returning to the lobby from a game, shut down cleanly so the player starts fresh
+        if (NetworkManager.Singleton != null && (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsServer))
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+
         ShowConnectionPanel();
 
         // Bind Connection Buttons
@@ -55,6 +61,10 @@ public class MultiplayerLobbyManager : MonoBehaviour
     {
         if (NetworkManager.Singleton != null)
         {
+            // Remove first to avoid duplicate bindings
+            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+            NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
+
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
         }
@@ -73,11 +83,10 @@ public class MultiplayerLobbyManager : MonoBehaviour
 
     private void OnHostButtonPressed()
     {
-        // Guard against missing NetworkManager in scene
         if (NetworkManager.Singleton == null)
         {
-            Debug.LogError("[MultiplayerLobby] NetworkManager.Singleton is missing! Add a NetworkManager object to the scene.");
-            if (statusText != null) statusText.text = "Error: NetworkManager missing in scene!";
+            Debug.LogError("[MultiplayerLobby] NetworkManager.Singleton is missing!");
+            if (statusText != null) statusText.text = "Error: NetworkManager missing!";
             return;
         }
 
@@ -104,8 +113,8 @@ public class MultiplayerLobbyManager : MonoBehaviour
     {
         if (NetworkManager.Singleton == null)
         {
-            Debug.LogError("[MultiplayerLobby] NetworkManager.Singleton is missing! Add a NetworkManager object to the scene.");
-            if (statusText != null) statusText.text = "Error: NetworkManager missing in scene!";
+            Debug.LogError("[MultiplayerLobby] NetworkManager.Singleton is missing!");
+            if (statusText != null) statusText.text = "Error: NetworkManager missing!";
             return;
         }
 
@@ -148,7 +157,7 @@ public class MultiplayerLobbyManager : MonoBehaviour
             }
             else
             {
-                Debug.LogError("[MultiplayerLobby] UnityTransport component missing from NetworkManager GameObject!");
+                Debug.LogError("[MultiplayerLobby] UnityTransport missing from NetworkManager!");
             }
         }
     }
@@ -168,6 +177,12 @@ public class MultiplayerLobbyManager : MonoBehaviour
 
     private void OnBackToMainMenuPressed()
     {
+        // Cleanly shut down any active host/client before going back
+        if (NetworkManager.Singleton != null && (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsServer))
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+
         SceneManager.LoadScene("MainMenu");
     }
 

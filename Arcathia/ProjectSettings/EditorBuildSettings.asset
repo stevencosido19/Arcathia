@@ -15,8 +15,11 @@ EditorBuildSettings:
     path: Assets/Scenes/MultiplayerLobby.unity
     guid: b580d1c3c925a8e4ea41f91e6ba963b2
   - enabled: 1
-    path: Assets/Scenes/FirstScene.unity
+    path: Assets/Scenes/MFireStage.unity
     guid: 2d34d36d651f2494a9cbb94ba1cbcd17
+  - enabled: 1
+    path: Assets/Scenes/FireStage(Campaign).unity
+    guid: c8f49f485dd9db242a14d9e3981dfd0f
   - enabled: 0
     path: Assets/Scenes/NetworkTestScene.unity
     guid: 5765bdf3f7425764aa273d66b91873ea
