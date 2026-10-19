@@ -6,12 +6,14 @@ public class PlayerScoreSlotUI : MonoBehaviour
 {
     [Header("UI References")]
     public Image avatarIcon;
+    public TMP_Text playerNameText; // (Optional) Shows the player's login name
     public TMP_Text scoreText;
 
     private PlayerScore boundPlayer;
 
     public void SetupSlot(PlayerScore player, Sprite icon)
     {
+        // Unsubscribe old events if recycled
         if (boundPlayer != null)
         {
             boundPlayer.score.OnValueChanged -= OnScoreChanged;
@@ -20,13 +22,28 @@ public class PlayerScoreSlotUI : MonoBehaviour
         boundPlayer = player;
         transform.localScale = Vector3.one;
 
-        if (avatarIcon != null && icon != null)
+        // 1. Setup Avatar Icon
+        if (avatarIcon != null)
         {
-            avatarIcon.sprite = icon;
-            avatarIcon.color = Color.white;
-            avatarIcon.enabled = true;
+            if (icon != null)
+            {
+                avatarIcon.sprite = icon;
+                avatarIcon.color = Color.white;
+                avatarIcon.enabled = true;
+            }
+            else
+            {
+                avatarIcon.enabled = false;
+            }
         }
 
+        // 2. Setup Player Name
+        if (playerNameText != null && boundPlayer != null)
+        {
+            playerNameText.text = boundPlayer.GetPlayerName();
+        }
+
+        // 3. Setup Score
         if (boundPlayer != null)
         {
             UpdateScoreDisplay(boundPlayer.score.Value);
@@ -44,10 +61,6 @@ public class PlayerScoreSlotUI : MonoBehaviour
         if (scoreText != null)
         {
             scoreText.text = score.ToString();
-        }
-        else
-        {
-            Debug.LogError($"<color=red>[PlayerScoreSlotUI ERROR]</color> ScoreText TMP_Text reference is NULL on {gameObject.name}!");
         }
     }
 

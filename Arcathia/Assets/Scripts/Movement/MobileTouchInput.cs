@@ -10,6 +10,10 @@ public class MobileTouchInput : MonoBehaviour
 
     private Vector2 moveStartPosition;
 
+    // Reused every call so we don't allocate garbage on each new touch.
+    private readonly System.Collections.Generic.List<RaycastResult> uiRaycastResults =
+        new System.Collections.Generic.List<RaycastResult>();
+
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
 
@@ -40,11 +44,14 @@ public class MobileTouchInput : MonoBehaviour
         var touches = touchscreen.touches;
         bool moveTouchFoundThisFrame = false;
         bool lookTouchFoundThisFrame = false;
+        int activeTouchCount = 0;
 
         for (int i = 0; i < touches.Count; i++)
         {
             TouchControl touch = touches[i];
             if (!touch.isInProgress) continue;
+
+            activeTouchCount++;
 
             int fingerId = touch.touchId.ReadValue();
             Vector2 position = touch.position.ReadValue();
@@ -95,7 +102,7 @@ public class MobileTouchInput : MonoBehaviour
             if (phase == UnityEngine.InputSystem.TouchPhase.Began)
             {
                 // Ignore if touch started over a UI button/element
-                if (IsTouchOverUI(fingerId))
+                if (IsPositionOverUI(position))
                 {
                     continue;
                 }
@@ -121,8 +128,10 @@ public class MobileTouchInput : MonoBehaviour
             }
         }
 
-        // --- SAFETY RECOVERY FIXES ---
-        if (touches.Count == 0)
+        // --- SAFETY RECOVERY ---
+        // Note: touchscreen.touches always has a fixed number of slots (usually 10),
+        // so "touches.Count == 0" is never true. Count the touches actually in progress instead.
+        if (activeTouchCount == 0)
         {
             ResetAllInputs();
         }
@@ -141,20 +150,19 @@ public class MobileTouchInput : MonoBehaviour
         }
     }
 
-    private bool IsTouchOverUI(int fingerId)
+    // Takes the touch POSITION directly. The old version used touchId as an index into
+    // touches[], but touchId is an ever-increasing id, not a slot number, so it checked the
+    // wrong finger (or bailed out) once ids grew past the slot count.
+    private bool IsPositionOverUI(Vector2 position)
     {
         if (EventSystem.current == null) return false;
-        if (Touchscreen.current == null || fingerId >= Touchscreen.current.touches.Count) return false;
 
-        PointerEventData eventData = new PointerEventData(EventSystem.current)
-        {
-            position = Touchscreen.current.touches[fingerId].position.ReadValue()
-        };
+        var eventData = new PointerEventData(EventSystem.current) { position = position };
 
-        var results = new System.Collections.Generic.List<RaycastResult>();
-        EventSystem.current.RaycastAll(eventData, results);
+        uiRaycastResults.Clear();
+        EventSystem.current.RaycastAll(eventData, uiRaycastResults);
 
-        return results.Count > 0;
+        return uiRaycastResults.Count > 0;
     }
 
     private void ResetAllInputs()

@@ -1,71 +1,79 @@
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
 public class PlayerScore : NetworkBehaviour
 {
-    [Header("Player Score Settings")]
+    [Header("Networked Player Stats")]
     public NetworkVariable<int> score = new NetworkVariable<int>(
         0,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
 
-    [Header("Player Identity Visuals")]
-    public Sprite playerAvatar;
+    public NetworkVariable<int> avatarIndex = new NetworkVariable<int>(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
 
-    private static Sprite fallbackCircleSprite;
-
-    public Sprite GetAvatar()
-    {
-        if (playerAvatar != null) return playerAvatar;
-
-        if (fallbackCircleSprite == null)
-        {
-            Texture2D tex = new Texture2D(32, 32);
-            Color[] colors = new Color[32 * 32];
-            Vector2 center = new Vector2(16, 16);
-
-            for (int y = 0; y < 32; y++)
-            {
-                for (int x = 0; x < 32; x++)
-                {
-                    float dist = Vector2.Distance(new Vector2(x, y), center);
-                    colors[y * 32 + x] = dist <= 14 ? Color.green : Color.clear;
-                }
-            }
-
-            tex.SetPixels(colors);
-            tex.Apply();
-            fallbackCircleSprite = Sprite.Create(tex, new Rect(0, 0, 32, 32), new Vector2(0.5f, 0.5f));
-        }
-
-        return fallbackCircleSprite;
-    }
+    public NetworkVariable<FixedString32Bytes> playerName = new NetworkVariable<FixedString32Bytes>(
+        "Player",
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
 
     public override void OnNetworkSpawn()
     {
+        // 1. If we own this player, send our saved local profile to the server
+        if (IsOwner)
+        {
+            string savedName = GameDataManager.Instance != null ? GameDataManager.Instance.PlayerName : "Player";
+            int savedAvatar = GameDataManager.Instance != null ? GameDataManager.Instance.SelectedAvatarIndex : 0;
+
+            SetProfileServerRpc(savedName, savedAvatar);
+        }
+
+        // 2. Listen for profile changes from other players to refresh UI
+        avatarIndex.OnValueChanged += OnProfileDataChanged;
+        playerName.OnValueChanged += OnProfileDataChanged;
+
         TriggerScoreboardRebuild();
     }
 
     public override void OnNetworkDespawn()
     {
+        avatarIndex.OnValueChanged -= OnProfileDataChanged;
+        playerName.OnValueChanged -= OnProfileDataChanged;
+
         TriggerScoreboardRebuild();
     }
 
-    private void TriggerScoreboardRebuild()
+    private void OnProfileDataChanged<T>(T oldVal, T newVal)
     {
-        if (ScoreboardUI.Instance != null)
+        TriggerScoreboardRebuild();
+    }
+
+    [ServerRpc]
+    private void SetProfileServerRpc(string name, int avatar)
+    {
+        playerName.Value = name;
+        avatarIndex.Value = avatar;
+    }
+
+    public Sprite GetAvatar()
+    {
+        if (GameDataManager.Instance != null)
         {
-            ScoreboardUI.Instance.RebuildScoreboard();
+            return GameDataManager.Instance.GetAvatar(avatarIndex.Value);
         }
-        else
-        {
-            ScoreboardUI ui = FindFirstObjectByType<ScoreboardUI>();
-            if (ui != null)
-            {
-                ui.RebuildScoreboard();
-            }
-        }
+
+        return null;
+    }
+
+    public string GetPlayerName()
+    {
+        return playerName.Value.ToString();
     }
 
     public void AddScore(int value)
@@ -84,5 +92,13 @@ public class PlayerScore : NetworkBehaviour
     private void AddScoreServerRpc(int value)
     {
         score.Value += value;
+    }
+
+    private void TriggerScoreboardRebuild()
+    {
+        if (ScoreboardUI.Instance != null)
+        {
+            ScoreboardUI.Instance.RebuildScoreboard();
+        }
     }
 }

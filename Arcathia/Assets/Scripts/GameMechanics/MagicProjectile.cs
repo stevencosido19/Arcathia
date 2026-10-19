@@ -11,7 +11,7 @@ public class MagicProjectile : NetworkBehaviour
     private NetworkObject shooterNetObj;
     private GameObject sourcePrefab; // Tracking reference required for pool recycling
     private Rigidbody rb;
-    private bool hasHit = false; // Flag to prevent multiple hits in the same frame
+    private bool hasHit = false;
 
     private void Awake()
     {
@@ -32,17 +32,14 @@ public class MagicProjectile : NetworkBehaviour
     {
         base.OnNetworkSpawn();
 
-        // 1. Reset state for recycled pooled objects
         hasHit = false;
 
-        // 2. Reset and apply physics
         if (rb != null)
         {
             rb.angularVelocity = Vector3.zero;
-            rb.linearVelocity = transform.forward * speed; // Use rb.velocity on older Unity versions
+            rb.linearVelocity = transform.forward * speed; // rb.velocity on older Unity versions
         }
 
-        // 3. Schedule lifetime despawn on server
         if (IsServer)
         {
             CancelInvoke(nameof(DespawnProjectile));
@@ -53,10 +50,13 @@ public class MagicProjectile : NetworkBehaviour
     // Handles Trigger Colliders
     private void OnTriggerEnter(Collider other)
     {
+        // CRITICAL FIX: Ignore all trigger colliders (like the enemy's DetectionArea!)
+        if (other.isTrigger) return;
+
         HandleImpact(other.gameObject);
     }
 
-    // Handles Physical Non-Trigger Colliders (Walls/Environment)
+    // Handles Physical Non-Trigger Colliders (Walls/Environment/Enemies)
     private void OnCollisionEnter(Collision collision)
     {
         HandleImpact(collision.gameObject);
@@ -64,27 +64,47 @@ public class MagicProjectile : NetworkBehaviour
 
     private void HandleImpact(GameObject hitObject)
     {
-        // 1. Only server processes hits
         if (!IsServer || hasHit) return;
 
-        // 2. Ignore self-hit on shooter
-        if (shooterNetObj != null && (hitObject == shooterNetObj.gameObject || hitObject.transform.IsChildOf(shooterNetObj.transform)))
+        // 1. Ignore self-hit on shooter
+        if (shooterNetObj != null)
+        {
+            if (hitObject == shooterNetObj.gameObject || hitObject.transform.IsChildOf(shooterNetObj.transform))
+            {
+                return;
+            }
+        }
+
+        // Secondary self-hit safeguard for local player on Host
+        PlayerController hitPlayerCtrl = hitObject.GetComponentInParent<PlayerController>();
+        if (hitPlayerCtrl != null && shooterNetObj != null && hitPlayerCtrl.NetworkObject == shooterNetObj)
         {
             return;
         }
 
-        // Lock immediately to prevent double hits
+        // Lock to prevent multiple hits
         hasHit = true;
 
-        // Check if hit target has PlayerHealth
-        PlayerHealth playerHealth = hitObject.GetComponentInParent<PlayerHealth>();
+        // 2. Check if hit AI Enemy (Campaign Mode)
+        ShootingEnemyAI enemyAI = hitObject.GetComponentInParent<ShootingEnemyAI>();
+        if (enemyAI != null)
+        {
+            PlayerScore attackerScore = (shooterNetObj != null) ? shooterNetObj.GetComponent<PlayerScore>() : null;
+            enemyAI.TakeDamage(damage, attackerScore);
+            DespawnProjectile();
+            return;
+        }
 
+        // 3. Check if hit another Player (Multiplayer Mode)
+        PlayerHealth playerHealth = hitObject.GetComponentInParent<PlayerHealth>();
         if (playerHealth != null)
         {
             playerHealth.TakeDamage(damage, shooterNetObj);
+            DespawnProjectile();
+            return;
         }
 
-        // Recycle projectile on any valid hit
+        // 4. Hit world geometry / walls / obstacles
         DespawnProjectile();
     }
 
@@ -94,10 +114,9 @@ public class MagicProjectile : NetworkBehaviour
         {
             CancelInvoke(nameof(DespawnProjectile));
 
-            // 1. Unspawn across Netcode without calling Object.Destroy()
+            // Unspawn across Netcode without destroying the GameObject (pool friendly)
             NetworkObject.Despawn(false);
 
-            // 2. Return instance back to NetworkObjectPool
             if (NetworkObjectPool.Instance != null && sourcePrefab != null)
             {
                 NetworkObjectPool.Instance.ReturnNetworkObject(NetworkObject, sourcePrefab);

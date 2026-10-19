@@ -45,6 +45,7 @@ public class ShootingEnemyAI : NetworkBehaviour
     private float waitTimer;
     private float targetLostTimer;
     private Vector3 originPosition;
+    private PlayerScore lastAttacker;
 
     private void Awake()
     {
@@ -64,7 +65,6 @@ public class ShootingEnemyAI : NetworkBehaviour
         originPosition = transform.position;
         SnapToNavMesh();
 
-        // Start by wandering
         currentState = AIState.Wandering;
         PickNewWanderDestination();
     }
@@ -75,6 +75,10 @@ public class ShootingEnemyAI : NetworkBehaviour
         {
             agent.Warp(hit.position);
         }
+        else
+        {
+            Debug.LogError($"[EnemyAI] Could not find a baked NavMesh near {transform.position}!");
+        }
     }
 
     private void Update()
@@ -83,7 +87,7 @@ public class ShootingEnemyAI : NetworkBehaviour
         if (agent == null || !agent.isOnNavMesh) return;
         if (isTraversingLink) return;
 
-        // Handle NavMeshLink obstacle / ledge jumping
+        // Handle jumping across obstacles / elevated NavMeshLinks
         if (agent.isOnOffMeshLink)
         {
             StartCoroutine(JumpOverLinkRoutine());
@@ -106,7 +110,7 @@ public class ShootingEnemyAI : NetworkBehaviour
         }
     }
 
-    // --- DETECTION TRIGGER CALLBACKS ---
+    // --- DETECTION TRIGGER CALLBACKS (Called by EnemyDetectionZone) ---
 
     public void OnPlayerDetected(Transform player)
     {
@@ -120,7 +124,6 @@ public class ShootingEnemyAI : NetworkBehaviour
     {
         if (playerTarget == player)
         {
-            // Start countdown before giving up and going back to wandering
             targetLostTimer = loseTargetDelay;
         }
     }
@@ -129,7 +132,7 @@ public class ShootingEnemyAI : NetworkBehaviour
 
     private void UpdateWanderingState()
     {
-        // Check if reached destination
+        // Once enemy arrives near the destination, count down wait time before picking a new spot
         if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.5f)
         {
             waitTimer += Time.deltaTime;
@@ -145,7 +148,7 @@ public class ShootingEnemyAI : NetworkBehaviour
     private void PickNewWanderDestination()
     {
         Vector3 randomDirection = Random.insideUnitSphere * wanderRadius;
-        randomDirection += originPosition; // Wander around its home zone
+        randomDirection += originPosition; // Keeps enemy tethered around its spawn zone
 
         if (NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, wanderRadius, NavMesh.AllAreas))
         {
@@ -166,7 +169,6 @@ public class ShootingEnemyAI : NetworkBehaviour
             return;
         }
 
-        // Chase the player
         if (agent.isStopped) agent.isStopped = false;
         agent.SetDestination(playerTarget.position);
     }
@@ -203,7 +205,7 @@ public class ShootingEnemyAI : NetworkBehaviour
             return true;
         }
 
-        // If player left collider and timer expired, resume wandering
+        // Countdown when the player steps outside the detection collider
         if (targetLostTimer > 0f)
         {
             targetLostTimer -= Time.deltaTime;
@@ -233,7 +235,7 @@ public class ShootingEnemyAI : NetworkBehaviour
     private bool HasLineOfSight()
     {
         Vector3 eyePos = firePoint != null ? firePoint.position : transform.position + Vector3.up * 1.5f;
-        Vector3 targetPos = playerTarget.position + Vector3.up * 1.0f;
+        Vector3 targetPos = playerTarget.position + Vector3.up * 1.0f; // Aim at chest height
         Vector3 dir = (targetPos - eyePos).normalized;
         float dist = Vector3.Distance(eyePos, targetPos);
 
@@ -277,6 +279,7 @@ public class ShootingEnemyAI : NetworkBehaviour
             timer += Time.deltaTime;
             float progress = timer / jumpDuration;
 
+            // Parabolic curve: rises up into the air and lands cleanly on the other side
             Vector3 currentPos = Vector3.Lerp(startPos, endPos, progress);
             currentPos.y += 4f * jumpHeight * progress * (1f - progress);
 
@@ -294,9 +297,16 @@ public class ShootingEnemyAI : NetworkBehaviour
         isTraversingLink = false;
     }
 
-    public void TakeDamage(float amount)
+    // --- DAMAGE SYSTEM & SCORE CONNECTION ---
+
+    public void TakeDamage(float amount, PlayerScore attacker = null)
     {
         if (!IsServer) return;
+
+        if (attacker != null)
+        {
+            lastAttacker = attacker;
+        }
 
         currentHealth.Value -= amount;
 
@@ -308,17 +318,34 @@ public class ShootingEnemyAI : NetworkBehaviour
 
     private void Die()
     {
+        // 1. Award +1 score to the killer
+        if (lastAttacker != null)
+        {
+            lastAttacker.AddScore(1);
+        }
+        else
+        {
+            // Fallback for campaign: award to the active player in the scene
+            PlayerScore singlePlayer = Object.FindFirstObjectByType<PlayerScore>();
+            if (singlePlayer != null)
+            {
+                singlePlayer.AddScore(1);
+            }
+        }
+
+        // 2. Despawn the enemy network object
         GetComponent<NetworkObject>().Despawn(true);
     }
 
-    // --- VISUAL GIZMOS IN SCENE VIEW ---
+    // --- VISUAL SCENE VIEW GIZMOS ---
+
     private void OnDrawGizmosSelected()
     {
-        // Red = Shooting Range
+        // Red wireframe sphere = Shooting Range
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, shootingRange);
 
-        // Cyan = Wander Area
+        // Cyan wireframe sphere = Wandering Radius
         Gizmos.color = Color.cyan;
         Vector3 center = Application.isPlaying ? originPosition : transform.position;
         Gizmos.DrawWireSphere(center, wanderRadius);
