@@ -41,7 +41,7 @@ Material:
     m_Colors:
     - _Bands: {r: 0.3, g: 0.55, b: 0.8, a: 0}
     - _ColorCore: {r: 1, g: 0.97, b: 0.8, a: 1}
-    - _ColorEdge: {r: 0.54999995, g: 0.059999965, b: 0.02, a: 1}
+    - _ColorEdge: {r: 0.49056602, g: 0.020825908, b: 0.020825908, a: 1}
     - _ColorHot: {r: 1, g: 0.78, b: 0.15, a: 1}
     - _ColorMid: {r: 1, g: 0.35, b: 0.05, a: 1}
   m_BuildTextureStacks: []

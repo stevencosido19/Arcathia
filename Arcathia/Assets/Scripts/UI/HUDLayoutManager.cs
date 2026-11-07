@@ -142,20 +142,42 @@ public class HUDLayoutManager : MonoBehaviour
     {
         if (settingsPanel == null) return;
 
-        settingsPanel.SetActive(true);
+        settingsPanel.SetActive(true); // Triggers UIPanelPopUp entrance animation automatically!
         IsSettingsOpen = true;
         ShowTab(defaultTab);
     }
 
+    /// <summary>
+    /// Smoothly closes the Settings window using UIPanelPopUp if attached.
+    /// </summary>
     public void CloseSettings()
     {
         IsEditing = false;
-
-        if (generalPanel != null) generalPanel.SetActive(false);
-        if (hudPanel != null) hudPanel.SetActive(false);
-        if (settingsPanel != null) settingsPanel.SetActive(false);
-
         IsSettingsOpen = false;
+
+        // -----------------------------------------------------------------
+        // CRITICAL FIX: Smoothly play close animation instead of hard snapping off!
+        // -----------------------------------------------------------------
+        if (settingsPanel != null && settingsPanel.activeInHierarchy)
+        {
+            UIPanelPopUp popUp = settingsPanel.GetComponent<UIPanelPopUp>();
+            if (popUp != null)
+            {
+                // Plays the shrink/slide exit animation and deactivates itself when finished
+                popUp.ClosePanel();
+            }
+            else
+            {
+                settingsPanel.SetActive(false);
+                if (generalPanel != null) generalPanel.SetActive(false);
+                if (hudPanel != null) hudPanel.SetActive(false);
+            }
+        }
+        else
+        {
+            if (generalPanel != null) generalPanel.SetActive(false);
+            if (hudPanel != null) hudPanel.SetActive(false);
+        }
     }
 
     public void ShowGeneralTab() => ShowTab(SettingsTab.General);
@@ -213,9 +235,6 @@ public class HUDLayoutManager : MonoBehaviour
         File.WriteAllText(savePath, JsonUtility.ToJson(data, true));
         Debug.Log($"<color=green>[HUDLayout SUCCESS] Saved {data.buttons.Count} buttons to file!</color>");
 
-        // -------------------------------------------------------------
-        // CRITICAL CONNECTION: Instantly update the real in-game HUD!
-        // -------------------------------------------------------------
         if (InGameHUDApplier.Instance != null)
         {
             InGameHUDApplier.Instance.ApplyLayout();
@@ -253,14 +272,12 @@ public class HUDLayoutManager : MonoBehaviour
 
     public void ResetToDefault()
     {
-        // 1. Delete saved file on disk
         if (File.Exists(savePath))
         {
             File.Delete(savePath);
             Debug.Log("<color=yellow>[HUDLayout] Deleted layout file.</color>");
         }
 
-        // 2. Reset the preview buttons
         foreach (var btn in previewButtons)
         {
             if (btn != null) btn.ResetToDefault();
@@ -268,9 +285,6 @@ public class HUDLayoutManager : MonoBehaviour
 
         Debug.Log("<color=cyan>[HUDLayout] Restored default preview layout.</color>");
 
-        // -----------------------------------------------------------------
-        // CRITICAL CONNECTION: Instantly snap real in-game buttons back!
-        // -----------------------------------------------------------------
         if (InGameHUDApplier.Instance != null)
         {
             InGameHUDApplier.Instance.ResetToDefaultLayout();

@@ -14653,6 +14653,7 @@ GameObject:
   - component: {fileID: 332808583367335369}
   - component: {fileID: -3198200390651375981}
   - component: {fileID: -2039432483427419719}
+  - component: {fileID: 4648811212703098376}
   m_Layer: 0
   m_Name: Fireball
   m_TagString: Untagged
@@ -14670,7 +14671,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 3, y: 3, z: 3}
+  m_LocalScale: {x: 5, y: 5, z: 5}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 7900784128708727087}
@@ -14795,6 +14796,27 @@ MonoBehaviour:
   speed: 25
   lifeTime: 4
   damage: 15
+--- !u!135 &4648811212703098376
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7491921875429398176}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &7654083957779667273
 GameObject:
   m_ObjectHideFlags: 0

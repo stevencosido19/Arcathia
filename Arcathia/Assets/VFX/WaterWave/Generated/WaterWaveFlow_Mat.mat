@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: WaterWaveFlow_Mat
+  m_Shader: {fileID: 4800000, guid: db9ba743d50c2584d89dd73a46e0a3db, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _ZWRITE_ON
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1.999999, y: 1.9999988}
+        m_Offset: {x: -0.49999982, y: -0.7499996}
+    - _NoiseTex:
+        m_Texture: {fileID: 2800000, guid: 516a4f8de98f7264abf7f26eaf8481c4, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Alpha: 1
+    - _AlphaCut: 0.3
+    - _Amp1: 0.0023003537
+    - _Amp2: 0.0011501769
+    - _BandCut: 0.7
+    - _BandStrength: 1
+    - _BottomNoise: 0.3
+    - _BubbleCut: 0.82
+    - _BubbleStrength: 1
+    - _Cross1: 41.73271
+    - _Cull: 2
+    - _Freq1: 130.41472
+    - _Freq2: 234.7465
+    - _FresnelStrength: 0.3
+    - _Intensity: 1
+    - _LipNoise: 0.35
+    - _LipSoft: 0.08
+    - _LipStart: 0.78
+    - _Progress: 0
+    - _ScrollSpeed: 0.35
+    - _ShadeAmount: 0.25
+    - _Soft: 0.2
+    - _Speed1: 3
+    - _Speed2: -2
+    - _Steep: 0.6
+    - _StreakCut: 0.55
+    - _StreakStrength: 0.6
+    - _SwayAmp: 0.0015335692
+    - _SwayFreq: 78.24883
+    - _SwaySpeed: 2
+    - _UseMainTex: 0
+    - _UsePlanar: 1
+    - _UseVertexMask: 0
+    - _VertexTone: 0.5
+    - _ZWrite: 1
+    m_Colors:
+    - _BottomFade: {r: 0.05, g: 0.25, b: 0, a: 0}
+    - _ColorHigh: {r: 0.36, g: 0.76, b: 1, a: 1}
+    - _ColorLow: {r: 0.1, g: 0.45, b: 0.85, a: 1}
+    - _FlowDir: {r: 0, g: 0, b: 1, a: 0}
+    - _FoamColor: {r: 1, g: 1, b: 1, a: 1}
+    - _HeightRange: {r: -0.2712074, g: 3.7731323, b: 0, a: 0}
+    - _LightDir: {r: 0.3, g: 0.8, b: -0.5, a: 0}
+    - _NoiseScale: {r: 4, g: 4, b: 0, a: 0}
+    - _PlanarRect: {r: -0.09100444, g: -0.010136098, b: 5.4942374, a: 13.041473}
+    - _StreakColor: {r: 0.78, g: 0.94, b: 1, a: 1}
+    - _StreakScale: {r: 6, g: 1.2, b: 0, a: 0}
+    - _Tint: {r: 1, g: 1, b: 1, a: 1}
+    - _UpAxis: {r: 0, g: 1, b: 0, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

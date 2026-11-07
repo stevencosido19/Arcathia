@@ -8,9 +8,10 @@ using UnityEngine.UI;
 public class MainMenuManager : MonoBehaviour
 {
     [Header("Panels")]
+    [Tooltip("Your main menu background or persistent left panel with buttons.")]
     public GameObject mainMenuPanel;
     public GameObject modeSelectionPanel;
-    public GameObject settingsPanel; // Added: Settings Panel reference
+    public GameObject settingsPanel;
 
     [Header("Main Menu Buttons")]
     public Button startButton;
@@ -24,10 +25,14 @@ public class MainMenuManager : MonoBehaviour
     public Button backButton;
 
     [Header("Settings Buttons")]
-    public Button closeSettingsButton; // Added: Back/Close button for Settings panel
+    public Button closeSettingsButton;
 
-    [Header("Transition Settings")]
-    [Tooltip("Delay in seconds between clicking a button and the panel appearing.")]
+    [Header("Panel Closing Rules")]
+    [Tooltip("If TRUE, ONLY panels that have the UIPanelPopUp script will close. " +
+             "Persistent panels without UIPanelPopUp (like your leftPanel) will stay open!")]
+    public bool onlyClosePanelsWithPopUp = true;
+
+    [Tooltip("Fallback delay used only if a panel without UIPanelPopUp is forced to close.")]
     [Range(0.05f, 0.5f)]
     public float panelTransitionDelay = 0.2f;
 
@@ -60,7 +65,7 @@ public class MainMenuManager : MonoBehaviour
         if (closeSettingsButton != null) closeSettingsButton.onClick.AddListener(OnCloseSettingsPressed);
     }
 
-    #region Panel Transitions with Delay
+    #region Panel Transitions
 
     private void OnStartButtonPressed()
     {
@@ -82,9 +87,6 @@ public class MainMenuManager : MonoBehaviour
         SwitchPanels(settingsPanel, mainMenuPanel);
     }
 
-    /// <summary>
-    /// Smoothly transitions between two panels with a slight customizable delay.
-    /// </summary>
     private void SwitchPanels(GameObject panelToHide, GameObject panelToShow)
     {
         if (!isTransitioning)
@@ -97,11 +99,31 @@ public class MainMenuManager : MonoBehaviour
     {
         isTransitioning = true;
 
-        // Use realtime so it still works if game time is paused
-        yield return new WaitForSecondsRealtime(panelTransitionDelay);
+        if (panelToHide != null && panelToHide.activeInHierarchy)
+        {
+            UIPanelPopUp popUp = panelToHide.GetComponent<UIPanelPopUp>();
 
-        if (panelToHide != null) panelToHide.SetActive(false);
-        if (panelToShow != null) panelToShow.SetActive(true);
+            // CASE 1: The panel HAS UIPanelPopUp -> Smoothly play its exit animation and close it
+            if (popUp != null)
+            {
+                popUp.ClosePanel();
+                yield return new WaitForSecondsRealtime(popUp.closeDuration);
+            }
+            // CASE 2: The panel DOES NOT have UIPanelPopUp:
+            else if (!onlyClosePanelsWithPopUp)
+            {
+                // Only close it if onlyClosePanelsWithPopUp is false.
+                // Otherwise, leave it completely untouched so your leftPanel stays on screen!
+                panelToHide.SetActive(false);
+                yield return new WaitForSecondsRealtime(panelTransitionDelay);
+            }
+        }
+
+        // Open the target panel (if it has UIPanelPopUp, its entrance animation plays automatically!)
+        if (panelToShow != null)
+        {
+            panelToShow.SetActive(true);
+        }
 
         isTransitioning = false;
     }

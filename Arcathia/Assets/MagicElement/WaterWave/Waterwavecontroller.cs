@@ -3,9 +3,10 @@ using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Runtime controller for the water wave projectile made by the Water Wave Builder.
-/// Moves the wave, drives the shader dissolve/scale, does a swept box hit-check
-/// (no Rigidbody needed, no tunnelling) and plays the splash on impact.
+/// Runtime controller for the water wave projectile made by the Water Wave builders.
+/// - Moves the wave, drives shader dissolve (_Progress)
+/// - Animates the wave body: spawn pop, squash/stretch curves, bob and rock
+/// - Swept box hit-check (no Rigidbody needed, no tunnelling) + splash on impact
 /// Pool friendly: call Launch() again after SetActive(true).
 /// </summary>
 [DisallowMultipleComponent]
@@ -15,6 +16,8 @@ public class WaterWaveController : MonoBehaviour
 
     [Header("References (auto-filled by the Builder)")]
     public Renderer waveRenderer;
+    [Tooltip("Object that gets scaled / bobbed. Defaults to the wave renderer's transform.")]
+    public Transform visualRoot;
     public ParticleSystem trailDroplets;
     public ParticleSystem impactSplash;
 
@@ -25,17 +28,36 @@ public class WaterWaveController : MonoBehaviour
     public float lifetime = 1.4f;
     public AnimationCurve speedOverLife = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 0.55f));
 
-    [Header("Look Over Life")]
+    [Header("Body Animation Over Life (squash & stretch)")]
     public float sizeMultiplier = 1f;
-    public AnimationCurve scaleOverLife = new AnimationCurve(
-        new Keyframe(0f, 0.25f), new Keyframe(0.1f, 1f), new Keyframe(1f, 1.15f));
-    [Tooltip("Shader dissolve 0 = full wave, 1 = gone")]
+    [Tooltip("Uniform scale multiplier")]
+    public AnimationCurve scaleOverLife = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 1f));
+    [Tooltip("X: pops in wide, settles, narrows slightly")]
+    public AnimationCurve widthOverLife = new AnimationCurve(
+        new Keyframe(0f, 0.30f), new Keyframe(0.08f, 1.12f), new Keyframe(0.18f, 1f), new Keyframe(1f, 0.9f));
+    [Tooltip("Y: pops up tall, settles, sinks as it fades")]
+    public AnimationCurve heightOverLife = new AnimationCurve(
+        new Keyframe(0f, 0.10f), new Keyframe(0.08f, 1.25f), new Keyframe(0.20f, 1f), new Keyframe(1f, 0.8f));
+    [Tooltip("Z (travel direction): stretches out the longer it flies")]
+    public AnimationCurve lengthOverLife = new AnimationCurve(
+        new Keyframe(0f, 0.40f), new Keyframe(0.10f, 1f), new Keyframe(0.5f, 1.15f), new Keyframe(1f, 1.35f));
+
+    [Header("Dissolve (shader _Progress)")]
+    [Tooltip("0 = full wave, 1 = gone")]
     public AnimationCurve dissolveOverLife = new AnimationCurve(
         new Keyframe(0f, 0f), new Keyframe(0.7f, 0.05f), new Keyframe(1f, 0.7f));
     [Tooltip("How long the wave takes to dissolve after a hit / end of life")]
     public float finishTime = 0.25f;
     [Tooltip("Keep the object alive this long after finishing so the splash can play out")]
     public float impactLinger = 0.6f;
+
+    [Header("Surf Motion (bob & rock)")]
+    public float bobHeight = 0.04f;
+    public float bobSpeed = 9f;
+    public float rockDegrees = 3f;
+    public float rockSpeed = 7f;
+    [Tooltip("Extra culling-bounds padding in metres, so vertex-animated waves don't pop at screen edges")]
+    public float boundsPadding = 0.6f;
 
     [Header("Hit Detection")]
     public LayerMask hitMask = ~0;
@@ -49,10 +71,12 @@ public class WaterWaveController : MonoBehaviour
     public bool destroyWhenDone = true;
 
     State state = State.Idle;
-    float age, finishT, finishFromProgress, finishFromScale;
-    float currentScale = 1f, currentProgress;
+    float age, finishT, visualTime;
+    float currentProgress, finishFromProgress;
+    Vector3 currentAxisScale = Vector3.one, finishFromAxisScale = Vector3.one;
     Transform owner;
-    Vector3 visualBaseScale = Vector3.one;
+    Vector3 visualBaseScale = Vector3.one, visualBasePos;
+    Quaternion visualBaseRot = Quaternion.identity;
     MaterialPropertyBlock mpb;
     readonly HashSet<Collider> hitSet = new HashSet<Collider>();
 
@@ -61,8 +85,29 @@ public class WaterWaveController : MonoBehaviour
     void Awake()
     {
         if (!waveRenderer) waveRenderer = GetComponentInChildren<MeshRenderer>();
-        if (waveRenderer) visualBaseScale = waveRenderer.transform.localScale;
+        if (!visualRoot && waveRenderer) visualRoot = waveRenderer.transform;
+        if (visualRoot)
+        {
+            visualBaseScale = visualRoot.localScale;
+            visualBasePos = visualRoot.localPosition;
+            visualBaseRot = visualRoot.localRotation;
+        }
         mpb = new MaterialPropertyBlock();
+
+#if UNITY_2021_2_OR_NEWER
+        // vertex-animated meshes move outside their imported bounds -> pad the culling bounds
+        if (waveRenderer)
+        {
+            var mf = waveRenderer.GetComponent<MeshFilter>();
+            if (mf && mf.sharedMesh)
+            {
+                Bounds b = mf.sharedMesh.bounds;
+                float s = Mathf.Max(1e-4f, Mathf.Abs(waveRenderer.transform.lossyScale.x));
+                b.Expand(boundsPadding / s);
+                waveRenderer.localBounds = b;
+            }
+        }
+#endif
     }
 
     void OnEnable()
@@ -90,6 +135,7 @@ public class WaterWaveController : MonoBehaviour
         owner = ownerToIgnore;
         age = 0f;
         finishT = 0f;
+        visualTime = 0f;
         hitSet.Clear();
         state = State.Flying;
 
@@ -100,7 +146,9 @@ public class WaterWaveController : MonoBehaviour
             trailDroplets.Play(true);
         }
 
-        ApplyVisual(dissolveOverLife.Evaluate(0f), scaleOverLife.Evaluate(0f));
+        currentAxisScale = AxisScaleAt(0f);
+        currentProgress = dissolveOverLife.Evaluate(0f);
+        ApplyVisual(currentProgress, currentAxisScale);
     }
 
     /// <summary>End the wave early (dissolves out).</summary>
@@ -111,16 +159,23 @@ public class WaterWaveController : MonoBehaviour
 
     // ------------------------------------------------------------- Update
 
+    Vector3 AxisScaleAt(float t)
+    {
+        return new Vector3(widthOverLife.Evaluate(t), heightOverLife.Evaluate(t), lengthOverLife.Evaluate(t))
+               * scaleOverLife.Evaluate(t);
+    }
+
     void Update()
     {
         if (state == State.Idle) return;
         float dt = Time.deltaTime;
+        visualTime += dt;
 
         if (state == State.Flying)
         {
             age += dt;
             float t = Mathf.Clamp01(age / lifetime);
-            currentScale = scaleOverLife.Evaluate(t);
+            currentAxisScale = AxisScaleAt(t);
             currentProgress = dissolveOverLife.Evaluate(t);
 
             Vector3 dir = transform.forward;
@@ -129,7 +184,8 @@ public class WaterWaveController : MonoBehaviour
 
             if (step > 0f)
             {
-                Vector3 ext = Vector3.Scale(hitBoxHalfExtents, transform.lossyScale) * (currentScale * sizeMultiplier);
+                Vector3 ext = Vector3.Scale(hitBoxHalfExtents, transform.lossyScale);
+                ext = Vector3.Scale(ext, currentAxisScale) * sizeMultiplier;
                 if (Physics.BoxCast(transform.position, ext, dir, out RaycastHit hit, transform.rotation,
                         step, hitMask, QueryTriggerInteraction.Ignore))
                 {
@@ -150,7 +206,7 @@ public class WaterWaveController : MonoBehaviour
             if (!stopped)
             {
                 transform.position += dir * step;
-                ApplyVisual(currentProgress, currentScale);
+                ApplyVisual(currentProgress, currentAxisScale);
                 if (age >= lifetime) BeginFinish();
             }
         }
@@ -158,7 +214,7 @@ public class WaterWaveController : MonoBehaviour
         {
             finishT += dt;
             float k = Mathf.Clamp01(finishT / Mathf.Max(0.0001f, finishTime));
-            ApplyVisual(Mathf.Lerp(finishFromProgress, 1f, k), Mathf.Lerp(finishFromScale, finishFromScale * 1.1f, k));
+            ApplyVisual(Mathf.Lerp(finishFromProgress, 1f, k), finishFromAxisScale * Mathf.Lerp(1f, 1.08f, k));
 
             if (finishT >= Mathf.Max(finishTime, impactLinger))
                 End();
@@ -183,7 +239,7 @@ public class WaterWaveController : MonoBehaviour
         state = State.Finishing;
         finishT = 0f;
         finishFromProgress = currentProgress;
-        finishFromScale = currentScale;
+        finishFromAxisScale = currentAxisScale;
         if (trailDroplets) trailDroplets.Stop(true, ParticleSystemStopBehavior.StopEmitting);
     }
 
@@ -195,10 +251,17 @@ public class WaterWaveController : MonoBehaviour
         else gameObject.SetActive(false);
     }
 
-    void ApplyVisual(float progress, float scale)
+    void ApplyVisual(float progress, Vector3 axisScale)
     {
         if (!waveRenderer) return;
-        waveRenderer.transform.localScale = visualBaseScale * (scale * sizeMultiplier);
+        Transform vt = visualRoot ? visualRoot : waveRenderer.transform;
+
+        vt.localScale = Vector3.Scale(visualBaseScale, axisScale) * sizeMultiplier;
+        float bob = Mathf.Sin(visualTime * bobSpeed) * bobHeight;
+        float rock = Mathf.Sin(visualTime * rockSpeed) * rockDegrees;
+        vt.localPosition = visualBasePos + new Vector3(0f, bob, 0f);
+        vt.localRotation = visualBaseRot * Quaternion.Euler(0f, 0f, rock);
+
         waveRenderer.GetPropertyBlock(mpb);
         mpb.SetFloat(ProgressId, progress);
         waveRenderer.SetPropertyBlock(mpb);

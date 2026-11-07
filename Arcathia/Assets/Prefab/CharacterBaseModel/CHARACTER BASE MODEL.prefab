@@ -1339,6 +1339,7 @@ GameObject:
   - component: {fileID: 1721794727191728392}
   - component: {fileID: 4685194942431791986}
   - component: {fileID: 5544010199314160517}
+  - component: {fileID: 37716375471998044}
   - component: {fileID: 7587464545728286998}
   - component: {fileID: 3206841998428603560}
   - component: {fileID: 2186377772156778946}
@@ -1427,6 +1428,29 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 11, z: 0}
+--- !u!136 &37716375471998044
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2066830630550178738}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 5
+  m_Height: 20
+  m_Direction: 1
+  m_Center: {x: 0, y: 10.85, z: 0}
 --- !u!114 &7587464545728286998
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1624,7 +1648,14 @@ MonoBehaviour:
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 100
   maxHealth: 100
+  respawnDelay: 5
   pointsPerKill: 1
+  characterModelRoot: {fileID: 2066830630550178738}
+  isDead:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
 --- !u!114 &1870496993355733570
 MonoBehaviour:
   m_ObjectHideFlags: 0
