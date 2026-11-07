@@ -8,6 +8,14 @@ public class PlayerMagicNetwork : NetworkBehaviour
     public GameObject waterProjectilePrefab;
     public GameObject lightningProjectilePrefab;
 
+    [Header("Cast Point")]
+    [Tooltip("Empty child at the hand / staff tip. Spells spawn here instead of from the body. " +
+             "Assign it from INSIDE the player prefab's hierarchy (not from the Project window).")]
+    public Transform castPoint;
+    [Tooltip("Server safety check: if the cast point sent by a client is farther than this from the player, " +
+             "the server uses the fallback spawn position instead. Raise it if your cast point is very far from the body.")]
+    public float maxCastPointDistance = 4f;
+
     [Header("Aim Settings")]
     public LayerMask aimLayerMask = ~0; // Layers the crosshair raycast can hit
     public float maxAimDistance = 100f;  // Fallback distance if aiming at the sky
@@ -23,6 +31,7 @@ public class PlayerMagicNetwork : NetworkBehaviour
     private PlayerPowerUpHandler powerUpHandler;
     private SpellbookUI spellbookUI;
     private Camera mainCamera;
+    private bool warnedNoCastPoint;
 
     // Reused buffer so the aim raycast doesn't allocate every shot
     private static readonly RaycastHit[] aimHits = new RaycastHit[8];
@@ -90,14 +99,37 @@ public class PlayerMagicNetwork : NetworkBehaviour
 
         DeductAmmo(type);
 
-        // 1. Calculate spawn origin in front of player
-        Vector3 spawnPosition = transform.position + transform.forward * 1.2f + Vector3.up * 1.2f;
+        // 1. Spawn origin: the Cast Point (hand / staff tip), not the body
+        Vector3 spawnPosition = GetSpawnPosition();
 
         // 2. Calculate rotation facing crosshair target point in 3D world
         Quaternion aimRotation = GetAimRotation(spawnPosition);
 
         // 3. Request Server to spawn spell projectile with crosshair rotation
         CastSpellServerRpc(type, spawnPosition, aimRotation);
+    }
+
+    /// <summary>
+    /// Where spells start. Uses the Cast Point when assigned, otherwise the old
+    /// "in front of the chest" offset so nothing breaks if the reference is missing.
+    /// </summary>
+    private Vector3 GetSpawnPosition()
+    {
+        if (castPoint != null) return castPoint.position;
+
+        if (!warnedNoCastPoint)
+        {
+            warnedNoCastPoint = true;
+            Debug.LogWarning($"[PlayerMagic] '{name}' has no Cast Point assigned, spells will spawn from the body. " +
+                             "Add an empty child at the hand/staff tip and assign it on the prefab.", this);
+        }
+
+        return GetFallbackSpawnPosition();
+    }
+
+    private Vector3 GetFallbackSpawnPosition()
+    {
+        return transform.position + transform.forward * 1.2f + Vector3.up * 1.2f;
     }
 
     /// <summary>
@@ -198,6 +230,14 @@ public class PlayerMagicNetwork : NetworkBehaviour
     private void CastSpellServerRpc(SpellType type, Vector3 spawnPos, Quaternion spawnRot)
     {
         if (IsMatchOver()) return;
+
+        // The client chose the spawn point (it knows where its animated hand is), so don't trust it blindly:
+        // if it is far from the player, fall back to the safe default position.
+        float maxDist = Mathf.Max(0.5f, maxCastPointDistance);
+        if ((spawnPos - transform.position).sqrMagnitude > maxDist * maxDist)
+        {
+            spawnPos = GetFallbackSpawnPosition();
+        }
 
         GameObject prefabToSpawn = type switch
         {

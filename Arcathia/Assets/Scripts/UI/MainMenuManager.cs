@@ -1,3 +1,4 @@
+using System.Collections;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
@@ -9,6 +10,7 @@ public class MainMenuManager : MonoBehaviour
     [Header("Panels")]
     public GameObject mainMenuPanel;
     public GameObject modeSelectionPanel;
+    public GameObject settingsPanel; // Added: Settings Panel reference
 
     [Header("Main Menu Buttons")]
     public Button startButton;
@@ -21,27 +23,92 @@ public class MainMenuManager : MonoBehaviour
     public Button multiplayerButton;
     public Button backButton;
 
+    [Header("Settings Buttons")]
+    public Button closeSettingsButton; // Added: Back/Close button for Settings panel
+
+    [Header("Transition Settings")]
+    [Tooltip("Delay in seconds between clicking a button and the panel appearing.")]
+    [Range(0.05f, 0.5f)]
+    public float panelTransitionDelay = 0.2f;
+
     [Header("Scene Build Settings Names")]
     public string campaignSceneName = "CampaignStage1";
     public string multiplayerLobbySceneName = "MultiplayerLobby";
     public string shopSceneName = "ShopScene";
 
+    private bool isTransitioning = false;
+
     void Start()
     {
+        // Initial panel states
         if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
         if (modeSelectionPanel != null) modeSelectionPanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(false);
 
+        // Bind Main Menu Buttons
         if (startButton != null) startButton.onClick.AddListener(OnStartButtonPressed);
         if (customizeButton != null) customizeButton.onClick.AddListener(OnCustomizeButtonPressed);
         if (settingsButton != null) settingsButton.onClick.AddListener(OnSettingsButtonPressed);
         if (quitButton != null) quitButton.onClick.AddListener(OnQuitButtonPressed);
 
+        // Bind Mode Selection Buttons
         if (campaignButton != null) campaignButton.onClick.AddListener(OnCampaignButtonPressed);
         if (multiplayerButton != null) multiplayerButton.onClick.AddListener(OnMultiplayerButtonPressed);
         if (backButton != null) backButton.onClick.AddListener(OnBackButtonPressed);
+
+        // Bind Settings Panel Buttons
+        if (closeSettingsButton != null) closeSettingsButton.onClick.AddListener(OnCloseSettingsPressed);
     }
 
-    private void OnStartButtonPressed() => modeSelectionPanel.SetActive(true);
+    #region Panel Transitions with Delay
+
+    private void OnStartButtonPressed()
+    {
+        SwitchPanels(mainMenuPanel, modeSelectionPanel);
+    }
+
+    private void OnBackButtonPressed()
+    {
+        SwitchPanels(modeSelectionPanel, mainMenuPanel);
+    }
+
+    private void OnSettingsButtonPressed()
+    {
+        SwitchPanels(mainMenuPanel, settingsPanel);
+    }
+
+    private void OnCloseSettingsPressed()
+    {
+        SwitchPanels(settingsPanel, mainMenuPanel);
+    }
+
+    /// <summary>
+    /// Smoothly transitions between two panels with a slight customizable delay.
+    /// </summary>
+    private void SwitchPanels(GameObject panelToHide, GameObject panelToShow)
+    {
+        if (!isTransitioning)
+        {
+            StartCoroutine(SwitchPanelsRoutine(panelToHide, panelToShow));
+        }
+    }
+
+    private IEnumerator SwitchPanelsRoutine(GameObject panelToHide, GameObject panelToShow)
+    {
+        isTransitioning = true;
+
+        // Use realtime so it still works if game time is paused
+        yield return new WaitForSecondsRealtime(panelTransitionDelay);
+
+        if (panelToHide != null) panelToHide.SetActive(false);
+        if (panelToShow != null) panelToShow.SetActive(true);
+
+        isTransitioning = false;
+    }
+
+    #endregion
+
+    #region Action Buttons
 
     private void OnCustomizeButtonPressed()
     {
@@ -50,8 +117,6 @@ public class MainMenuManager : MonoBehaviour
             SceneManager.LoadScene(shopSceneName);
         }
     }
-
-    private void OnSettingsButtonPressed() => Debug.Log("Settings pressed - Feature coming soon.");
 
     private void OnQuitButtonPressed()
     {
@@ -68,19 +133,15 @@ public class MainMenuManager : MonoBehaviour
 
         if (NetworkManager.Singleton != null)
         {
-            // Bind to local loopback address for single-player campaign
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             if (transport != null)
             {
                 transport.SetConnectionData("127.0.0.1", 7777, "127.0.0.1");
             }
 
-            // 1. Start the game silently as Host
             if (NetworkManager.Singleton.StartHost())
             {
                 Debug.Log($"[Campaign] Starting Campaign Mode as Host. Loading: {campaignSceneName}");
-
-                // 2. Load the level via Netcode SceneManager so player and network objects sync
                 NetworkManager.Singleton.SceneManager.LoadScene(campaignSceneName, LoadSceneMode.Single);
             }
             else
@@ -98,7 +159,6 @@ public class MainMenuManager : MonoBehaviour
     {
         if (!string.IsNullOrEmpty(multiplayerLobbySceneName))
         {
-            // Make sure Netcode isn't already running when heading to the lobby
             if (NetworkManager.Singleton != null && (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsServer))
             {
                 NetworkManager.Singleton.Shutdown();
@@ -108,9 +168,5 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
-    private void OnBackButtonPressed()
-    {
-        modeSelectionPanel.SetActive(false);
-        mainMenuPanel.SetActive(true);
-    }
+    #endregion
 }

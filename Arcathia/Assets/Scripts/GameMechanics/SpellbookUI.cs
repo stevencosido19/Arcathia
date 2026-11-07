@@ -22,9 +22,12 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     public List<Button> quadrantButtons;
 
     [Header("Ammo HUD Elements")]
-    public List<Image> fireAmmoDots;
-    public List<Image> waterAmmoDots;
-    public List<Image> lightningAmmoDots;
+    [Tooltip("One Image per spell. Needs a Source Image; Image Type is forced to Filled at start. " +
+             "Fill Method / Origin (Horizontal, Vertical, Radial...) are taken from the Inspector. " +
+             "Fill Amount = current ammo / max ammo.")]
+    public Image fireAmmoFill;
+    public Image waterAmmoFill;
+    public Image lightningAmmoFill;
     public Button attackButton;
 
     [Header("Double-Click / Double-Tap Settings")]
@@ -90,6 +93,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         if (equationGenerator == null)
             equationGenerator = FindFirstObjectByType<MathEquationGenerator>();
 
+        InitializeAmmoFills();
         FetchNewFireProblem();
 
         for (int i = 0; i < quadrantButtons.Count; i++)
@@ -160,24 +164,46 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         UpdateBookUI();
     }
 
+    // --- AMMO HUD (image fill) ---
+
+    /// <summary>
+    /// Players start with no ammo, so make sure the fills start empty instead of showing the
+    /// Image's default Fill Amount of 1 (full) until the first ammo change.
+    /// </summary>
+    private void InitializeAmmoFills()
+    {
+        SetupAmmoFill(fireAmmoFill, "fireAmmoFill");
+        SetupAmmoFill(waterAmmoFill, "waterAmmoFill");
+        SetupAmmoFill(lightningAmmoFill, "lightningAmmoFill");
+    }
+
+    private static void SetupAmmoFill(Image fill, string fieldName)
+    {
+        if (fill == null) return;
+
+        if (fill.sprite == null)
+            Debug.LogWarning($"[SpellbookUI] {fieldName} has no Source Image. A Filled image needs a sprite to fill properly.", fill);
+
+        if (fill.type != Image.Type.Filled)
+            fill.type = Image.Type.Filled;
+
+        fill.fillAmount = 0f;
+    }
+
     public void UpdateAmmoUI(SpellType type, int currentCount, int maxCount)
     {
-        List<Image> dots = type switch
+        Image fill = type switch
         {
-            SpellType.Fire => fireAmmoDots,
-            SpellType.Water => waterAmmoDots,
-            SpellType.Lightning => lightningAmmoDots,
+            SpellType.Fire => fireAmmoFill,
+            SpellType.Water => waterAmmoFill,
+            SpellType.Lightning => lightningAmmoFill,
             _ => null
         };
 
-        if (dots == null) return;
-
-        for (int i = 0; i < dots.Count; i++)
+        if (fill != null)
         {
-            if (dots[i] == null) continue;
-
-            dots[i].enabled = true;
-            dots[i].color = (i < currentCount) ? Color.white : new Color(1f, 1f, 1f, 0.2f);
+            fill.enabled = true;
+            fill.fillAmount = maxCount > 0 ? Mathf.Clamp01((float)currentCount / maxCount) : 0f;
         }
 
         UpdateDialState();

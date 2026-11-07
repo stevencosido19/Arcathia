@@ -1,49 +1,74 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 [System.Serializable]
-public struct ButtonPositionData
+public struct NormalizedButtonData
 {
     public string buttonId;
-    public Vector2 anchoredPosition;
+    public float normX; // 0.0 to 1.0
+    public float normY; // 0.0 to 1.0
 }
 
 [System.Serializable]
 public class HUDLayoutSaveData
 {
-    public List<ButtonPositionData> buttons = new List<ButtonPositionData>();
+    public List<NormalizedButtonData> buttons = new List<NormalizedButtonData>();
 }
 
 public class HUDLayoutManager : MonoBehaviour
 {
+    public enum SettingsTab { General, HUD }
+
     public static HUDLayoutManager Instance;
 
     /// <summary>
-    /// True while the player is rearranging the HUD. Any gameplay input script (jump, fire,
-    /// spellbook gestures, joystick, camera look...) should ignore input while this is true:
-    ///     if (HUDLayoutManager.IsLayoutEditing) return;
+    /// Restored for CustomizableButton.cs and PlayerController.cs compatibility.
     /// </summary>
-    public static bool IsLayoutEditing => Instance != null && Instance.IsEditing;
-
-    [Header("UI References")]
-    public GameObject customizationPanel;
-    public List<CustomizableButton> movableButtons;
-
-    [Header("Edit Mode Lock")]
-    [Tooltip("CanvasGroup that wraps the gameplay HUD (fire, jump, rune dial...). Its 'Interactable' is switched off " +
-             "while editing so Button clicks can't fire, but dragging still works. It must NOT contain the " +
-             "customization panel, unless the panel has its own CanvasGroup with 'Ignore Parent Groups' ticked.")]
-    public CanvasGroup gameplayHUDGroup;
-
     [HideInInspector]
     public bool IsEditing = false;
 
-    private string savePath;
+    public static bool IsLayoutEditing => Instance != null && Instance.IsEditing;
+    public static bool IsSettingsOpen { get; private set; }
 
-    // Default positions, captured BEFORE any saved layout is applied.
-    // Reset uses these instead of reloading the scene.
-    private readonly Dictionary<string, Vector2> defaultPositions = new Dictionary<string, Vector2>();
+    [Header("Panels")]
+    [Tooltip("The main Settings container (with the left buttons and right content area).")]
+    public GameObject settingsPanel;
+
+    [Tooltip("The right-hand panel for GENERAL settings (Aim Assist).")]
+    public GameObject generalPanel;
+
+    [Tooltip("The right-hand panel for HUD customization (Contains the Mini Screen Preview).")]
+    public GameObject hudPanel;
+
+    [Header("Left Navigation Buttons")]
+    public Button generalTabButton;
+    public Button hudTabButton;
+    public Button backButton;
+
+    [Header("Optional: In-Game Settings Button")]
+    public Button openSettingsButton;
+
+    [Header("HUD Customization Preview References")]
+    [Tooltip("Drag all the dummy draggable preview buttons inside your preview box here.")]
+    public List<DraggablePreviewButton> previewButtons;
+
+    public Button saveLayoutButton;
+    public Button resetLayoutButton;
+
+    [Header("Tab Visual Colors")]
+    public bool colorizeActiveTab = true;
+    public Color activeTabColor = new Color(0.48f, 0.05f, 0.85f, 1f);   // Bright purple
+    public Color inactiveTabColor = new Color(0.25f, 0.02f, 0.45f, 1f); // Dark purple
+
+    [Header("Options")]
+    public SettingsTab defaultTab = SettingsTab.General;
+    public bool closeWithEscape = true;
+
+    private string savePath;
+    private SettingsTab currentTab = SettingsTab.General;
 
     private void Awake()
     {
@@ -55,130 +80,200 @@ public class HUDLayoutManager : MonoBehaviour
 
     private void Start()
     {
-        CaptureDefaultPositions(); // must happen before LoadLayout
-        LoadLayout();
-        if (customizationPanel != null)
+        if (Instance != this) return;
+
+        // Auto-find preview buttons if the Inspector list was left empty
+        if (previewButtons == null || previewButtons.Count == 0)
         {
-            customizationPanel.SetActive(false);
+            previewButtons = new List<DraggablePreviewButton>(GetComponentsInChildren<DraggablePreviewButton>(true));
         }
-        ApplyEditLock();
+
+        WireButtons();
+        LoadPreviewLayout();
+
+        // Start closed
+        if (generalPanel != null) generalPanel.SetActive(false);
+        if (hudPanel != null) hudPanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(false);
+
+        IsEditing = false;
+        IsSettingsOpen = false;
+    }
+
+    private void Update()
+    {
+        if (Instance != this || !IsSettingsOpen) return;
+
+        if (closeWithEscape && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            CloseSettings();
+        }
     }
 
     private void OnDestroy()
     {
-        if (Instance != this) return;
-
-        // Never leave the gameplay HUD locked
-        if (gameplayHUDGroup != null) gameplayHUDGroup.interactable = true;
-        Instance = null;
+        UnwireButtons();
+        if (Instance == this) Instance = null;
     }
 
-    private void CaptureDefaultPositions()
+    private void WireButtons()
     {
-        defaultPositions.Clear();
-        foreach (var btn in movableButtons)
-        {
-            if (btn == null) continue;
+        if (openSettingsButton != null) openSettingsButton.onClick.AddListener(OpenSettings);
+        if (generalTabButton != null) generalTabButton.onClick.AddListener(ShowGeneralTab);
+        if (hudTabButton != null) hudTabButton.onClick.AddListener(ShowHudTab);
+        if (backButton != null) backButton.onClick.AddListener(CloseSettings);
 
-            RectTransform rt = btn.GetComponent<RectTransform>();
-            defaultPositions[btn.buttonId] = rt.anchoredPosition;
-        }
+        if (saveLayoutButton != null) saveLayoutButton.onClick.AddListener(SaveLayout);
+        if (resetLayoutButton != null) resetLayoutButton.onClick.AddListener(ResetToDefault);
     }
 
-    public void ToggleCustomizationPanel()
+    private void UnwireButtons()
     {
-        IsEditing = !IsEditing;
-        if (customizationPanel != null)
-        {
-            customizationPanel.SetActive(IsEditing);
-        }
-        ApplyEditLock();
+        if (openSettingsButton != null) openSettingsButton.onClick.RemoveListener(OpenSettings);
+        if (generalTabButton != null) generalTabButton.onClick.RemoveListener(ShowGeneralTab);
+        if (hudTabButton != null) hudTabButton.onClick.RemoveListener(ShowHudTab);
+        if (backButton != null) backButton.onClick.RemoveListener(CloseSettings);
+
+        if (saveLayoutButton != null) saveLayoutButton.onClick.RemoveListener(SaveLayout);
+        if (resetLayoutButton != null) resetLayoutButton.onClick.RemoveListener(ResetToDefault);
     }
 
-    // Turns Button clicks off while editing (and back on afterwards).
-    // CanvasGroup.interactable only affects Buttons/Toggles/Sliders, not drag handlers,
-    // so the HUD buttons can still be dragged around.
-    private void ApplyEditLock()
+    public void OpenSettings()
     {
-        if (gameplayHUDGroup != null)
-        {
-            gameplayHUDGroup.interactable = !IsEditing;
-        }
+        if (settingsPanel == null) return;
+
+        settingsPanel.SetActive(true);
+        IsSettingsOpen = true;
+        ShowTab(defaultTab);
     }
 
-    public void SaveAndClose()
+    public void CloseSettings()
     {
-        SaveLayout();
-        ToggleCustomizationPanel();
+        IsEditing = false;
+
+        if (generalPanel != null) generalPanel.SetActive(false);
+        if (hudPanel != null) hudPanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(false);
+
+        IsSettingsOpen = false;
     }
+
+    public void ShowGeneralTab() => ShowTab(SettingsTab.General);
+    public void ShowHudTab() => ShowTab(SettingsTab.HUD);
+
+    private void ShowTab(SettingsTab tab)
+    {
+        currentTab = tab;
+        IsEditing = (tab == SettingsTab.HUD);
+
+        if (generalPanel != null) generalPanel.SetActive(tab == SettingsTab.General);
+        if (hudPanel != null) hudPanel.SetActive(tab == SettingsTab.HUD);
+
+        RefreshTabColors();
+    }
+
+    private void RefreshTabColors()
+    {
+        if (!colorizeActiveTab) return;
+
+        if (generalTabButton != null && generalTabButton.targetGraphic is Image genImg)
+            genImg.color = (currentTab == SettingsTab.General) ? activeTabColor : inactiveTabColor;
+
+        if (hudTabButton != null && hudTabButton.targetGraphic is Image hudImg)
+            hudImg.color = (currentTab == SettingsTab.HUD) ? activeTabColor : inactiveTabColor;
+    }
+
+    // --- SAVE, LOAD & RESET ---
+
+    public void SaveOnly() => SaveLayout();
 
     public void SaveLayout()
     {
-        HUDLayoutSaveData saveData = new HUDLayoutSaveData();
-        foreach (var btn in movableButtons)
+        // Auto-find if empty
+        if (previewButtons == null || previewButtons.Count == 0)
+        {
+            previewButtons = new List<DraggablePreviewButton>(GetComponentsInChildren<DraggablePreviewButton>(true));
+        }
+
+        HUDLayoutSaveData data = new HUDLayoutSaveData();
+
+        foreach (var btn in previewButtons)
         {
             if (btn == null) continue;
 
-            RectTransform rt = btn.GetComponent<RectTransform>();
-            saveData.buttons.Add(new ButtonPositionData
+            Vector2 norm = btn.GetNormalizedPosition();
+            data.buttons.Add(new NormalizedButtonData
             {
                 buttonId = btn.buttonId,
-                anchoredPosition = rt.anchoredPosition
+                normX = norm.x,
+                normY = norm.y
             });
         }
 
-        File.WriteAllText(savePath, JsonUtility.ToJson(saveData, true));
-        Debug.Log("[HUDLayout] Layout saved to game data.");
+        File.WriteAllText(savePath, JsonUtility.ToJson(data, true));
+        Debug.Log($"<color=green>[HUDLayout SUCCESS] Saved {data.buttons.Count} buttons to file!</color>");
+
+        // -------------------------------------------------------------
+        // CRITICAL CONNECTION: Instantly update the real in-game HUD!
+        // -------------------------------------------------------------
+        if (InGameHUDApplier.Instance != null)
+        {
+            InGameHUDApplier.Instance.ApplyLayout();
+        }
     }
 
-    public void LoadLayout()
+    public void LoadPreviewLayout()
     {
         if (!File.Exists(savePath)) return;
 
-        HUDLayoutSaveData saveData;
         try
         {
-            saveData = JsonUtility.FromJson<HUDLayoutSaveData>(File.ReadAllText(savePath));
+            HUDLayoutSaveData data = JsonUtility.FromJson<HUDLayoutSaveData>(File.ReadAllText(savePath));
+            if (data == null || data.buttons == null) return;
+
+            if (previewButtons == null || previewButtons.Count == 0)
+            {
+                previewButtons = new List<DraggablePreviewButton>(GetComponentsInChildren<DraggablePreviewButton>(true));
+            }
+
+            foreach (var item in data.buttons)
+            {
+                var btn = previewButtons.Find(x => x != null && x.buttonId == item.buttonId);
+                if (btn != null)
+                {
+                    btn.SetFromNormalizedPosition(new Vector2(item.normX, item.normY));
+                }
+            }
         }
         catch (System.Exception e)
         {
-            // A corrupt/unreadable file should never break the HUD, just fall back to defaults.
-            Debug.LogWarning($"[HUDLayout] Could not read layout file, using default positions. {e.Message}");
-            return;
-        }
-
-        if (saveData == null || saveData.buttons == null) return;
-
-        foreach (var data in saveData.buttons)
-        {
-            var btn = movableButtons.Find(x => x != null && x.buttonId == data.buttonId);
-            if (btn != null)
-            {
-                btn.GetComponent<RectTransform>().anchoredPosition = data.anchoredPosition;
-            }
+            Debug.LogWarning($"[HUDLayout] Error reading layout file: {e.Message}");
         }
     }
 
     public void ResetToDefault()
     {
-        // 1. Remove the saved layout so the defaults also apply next launch
+        // 1. Delete saved file on disk
         if (File.Exists(savePath))
         {
             File.Delete(savePath);
-            Debug.Log("[HUDLayout] Layout file deleted.");
+            Debug.Log("<color=yellow>[HUDLayout] Deleted layout file.</color>");
         }
 
-        // 2. Move every button back to where it started. No scene reload, so nothing gets duplicated.
-        foreach (var btn in movableButtons)
+        // 2. Reset the preview buttons
+        foreach (var btn in previewButtons)
         {
-            if (btn == null) continue;
-
-            if (defaultPositions.TryGetValue(btn.buttonId, out Vector2 defaultPos))
-            {
-                btn.GetComponent<RectTransform>().anchoredPosition = defaultPos;
-            }
+            if (btn != null) btn.ResetToDefault();
         }
 
-        Debug.Log("[HUDLayout] Buttons restored to default positions.");
+        Debug.Log("<color=cyan>[HUDLayout] Restored default preview layout.</color>");
+
+        // -----------------------------------------------------------------
+        // CRITICAL CONNECTION: Instantly snap real in-game buttons back!
+        // -----------------------------------------------------------------
+        if (InGameHUDApplier.Instance != null)
+        {
+            InGameHUDApplier.Instance.ResetToDefaultLayout();
+        }
     }
 }

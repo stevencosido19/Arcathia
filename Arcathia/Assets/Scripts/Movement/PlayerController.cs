@@ -11,24 +11,34 @@ public class PlayerController : NetworkBehaviour
 
     [Header("Jump & Fall Customization")]
     public float jumpSpeed = 8.5f;
-    [Tooltip("Base gravity. In video games, -18 to -25 feels much more natural than -9.81.")]
     public float baseGravity = -20.0f;
     public float jumpGravityMultiplier = 1.0f;
-    [Tooltip("Multiplier applied when falling down. 2.0x to 2.5x gives snappy, accelerating falls.")]
     public float fallGravityMultiplier = 2.2f;
-    [Tooltip("Maximum downward speed before terminal velocity.")]
     public float maxFallSpeed = 45.0f;
+
+    [Tooltip("Seconds after a jump during which the ground check is ignored. " +
+             "Stops IsGrounded flickering true right after takeoff, which fires Land and Jump back to back.")]
+    public float jumpGroundIgnoreTime = 0.1f;
 
     private CharacterController controller;
     private MobileTouchInput touchInputHandler;
+    private Animator animator;
 
     private Vector3 verticalVelocity;
     private bool isGrounded;
+    private bool wasGrounded;
+    private float jumpGroundIgnoreTimer;
+
+    // Animator Hashes
+    private static readonly int SpeedHash = Animator.StringToHash("Speed");
+    private static readonly int IsGroundedHash = Animator.StringToHash("IsGrounded");
+    private static readonly int JumpHash = Animator.StringToHash("Jump");
 
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
         touchInputHandler = GetComponent<MobileTouchInput>();
+        animator = GetComponentInChildren<Animator>();
     }
 
     public override void OnNetworkSpawn()
@@ -52,19 +62,12 @@ public class PlayerController : NetworkBehaviour
 
     private void HandleMovement()
     {
-        // Unity's isGrounded flag
-        isGrounded = controller.isGrounded;
+        if (jumpGroundIgnoreTimer > 0f) jumpGroundIgnoreTimer -= Time.deltaTime;
 
-        // Ground snap force only if grounded and not currently jumping upward
-        if (isGrounded && verticalVelocity.y < 0)
-        {
-            verticalVelocity.y = -3.0f; // Firm ground stick force
-        }
-
+        // 1. Gather Inputs
         float moveX = 0f;
         float moveZ = 0f;
 
-        // 1. Keyboard Inputs
         if (Keyboard.current != null)
         {
             if (Keyboard.current.wKey.isPressed) moveZ += 1f;
@@ -78,7 +81,6 @@ public class PlayerController : NetworkBehaviour
             }
         }
 
-        // 2. Touch Inputs
         if (touchInputHandler != null)
         {
             moveX += touchInputHandler.MoveInput.x;
@@ -88,7 +90,10 @@ public class PlayerController : NetworkBehaviour
         Vector2 combinedInput = Vector2.ClampMagnitude(new Vector2(moveX, moveZ), 1f);
         Vector3 horizontalMove = Vector3.zero;
 
-        if (combinedInput.sqrMagnitude > 0.001f && Camera.main != null)
+        // Deadzone check (prevents sliding while idling)
+        float inputMagnitude = combinedInput.magnitude;
+
+        if (inputMagnitude > 0.05f && Camera.main != null)
         {
             Transform camTransform = Camera.main.transform;
             Vector3 camForward = camTransform.forward;
@@ -101,29 +106,58 @@ public class PlayerController : NetworkBehaviour
             Vector3 moveDir = (camForward * combinedInput.y + camRight * combinedInput.x).normalized;
             horizontalMove = moveDir * moveSpeed;
 
-            // Rotate character smoothly toward movement direction
             Quaternion targetRotation = Quaternion.LookRotation(moveDir);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
 
-        // 3. Dynamic Gravity Acceleration
-        if (verticalVelocity.y > 0)
+        // 2. Dynamic Gravity
+        if (isGrounded && verticalVelocity.y < 0)
         {
-            // Upward arc of jump
+            verticalVelocity.y = -3.0f; // Firm ground stick
+        }
+        else if (verticalVelocity.y > 0)
+        {
             verticalVelocity.y += baseGravity * jumpGravityMultiplier * Time.deltaTime;
         }
         else
         {
-            // Downward fall - accelerate heavier toward the ground
             verticalVelocity.y += baseGravity * fallGravityMultiplier * Time.deltaTime;
         }
 
-        // Clamp to terminal velocity
         verticalVelocity.y = Mathf.Max(verticalVelocity.y, -maxFallSpeed);
 
-        // 4. COMBINE into ONE single Move call (Crucial fix!)
+        // 3. Move Character
         Vector3 totalMovement = horizontalMove + verticalVelocity;
         controller.Move(totalMovement * Time.deltaTime);
+
+        // 4. Update isGrounded AFTER controller.Move().
+        // Ignore the ground check for a moment after a jump so it can't flicker back to true during takeoff.
+        isGrounded = controller.isGrounded && jumpGroundIgnoreTimer <= 0f;
+
+        // 5. On the frame we land, throw away any Jump trigger that was never consumed.
+        // A trigger stays set until some transition uses it, so when you spam jump, leftover triggers
+        // replay the jump-start animation late. That is the "animation delay".
+        if (animator != null && isGrounded && !wasGrounded)
+        {
+            animator.ResetTrigger(JumpHash);
+        }
+        wasGrounded = isGrounded;
+
+        // 6. Update Animator Parameters
+        if (animator != null)
+        {
+            // Snap to 0 immediately when input stops to prevent delayed running
+            if (inputMagnitude < 0.05f)
+            {
+                animator.SetFloat(SpeedHash, 0f);
+            }
+            else
+            {
+                animator.SetFloat(SpeedHash, inputMagnitude, 0.05f, Time.deltaTime);
+            }
+
+            animator.SetBool(IsGroundedHash, isGrounded);
+        }
     }
 
     public void TriggerJump()
@@ -134,28 +168,23 @@ public class PlayerController : NetworkBehaviour
         if (isGrounded)
         {
             verticalVelocity.y = jumpSpeed;
+            isGrounded = false; // Immediately flag as in-air
+            wasGrounded = false;
+            jumpGroundIgnoreTimer = jumpGroundIgnoreTime;
+
+            if (animator != null)
+            {
+                animator.SetBool(IsGroundedHash, false);
+
+                // Clear first so triggers never stack up, then fire exactly one.
+                animator.ResetTrigger(JumpHash);
+                animator.SetTrigger(JumpHash);
+            }
         }
     }
 
     public void ResetVelocity()
     {
         verticalVelocity = Vector3.zero;
-    }
-
-    public void Teleport(Vector3 position, Quaternion rotation)
-    {
-        StartCoroutine(TeleportRoutine(position, rotation));
-    }
-
-    private System.Collections.IEnumerator TeleportRoutine(Vector3 position, Quaternion rotation)
-    {
-        if (controller != null) controller.enabled = false;
-        ResetVelocity();
-
-        transform.SetPositionAndRotation(position, rotation);
-
-        yield return new WaitForFixedUpdate();
-
-        if (controller != null) controller.enabled = true;
     }
 }
