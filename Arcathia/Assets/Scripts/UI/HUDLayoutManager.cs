@@ -8,8 +8,8 @@ using UnityEngine.UI;
 public struct NormalizedButtonData
 {
     public string buttonId;
-    public float normX; // 0.0 to 1.0
-    public float normY; // 0.0 to 1.0
+    public float normX; 
+    public float normY; 
 }
 
 [System.Serializable]
@@ -24,9 +24,7 @@ public class HUDLayoutManager : MonoBehaviour
 
     public static HUDLayoutManager Instance;
 
-    /// <summary>
-    /// Restored for CustomizableButton.cs and PlayerController.cs compatibility.
-    /// </summary>
+    
     [HideInInspector]
     public bool IsEditing = false;
 
@@ -60,8 +58,8 @@ public class HUDLayoutManager : MonoBehaviour
 
     [Header("Tab Visual Colors")]
     public bool colorizeActiveTab = true;
-    public Color activeTabColor = new Color(0.48f, 0.05f, 0.85f, 1f);   // Bright purple
-    public Color inactiveTabColor = new Color(0.25f, 0.02f, 0.45f, 1f); // Dark purple
+    public Color activeTabColor = new Color(0.48f, 0.05f, 0.85f, 1f);   
+    public Color inactiveTabColor = new Color(0.25f, 0.02f, 0.45f, 1f); 
 
     [Header("Options")]
     public SettingsTab defaultTab = SettingsTab.General;
@@ -82,7 +80,7 @@ public class HUDLayoutManager : MonoBehaviour
     {
         if (Instance != this) return;
 
-        // Auto-find preview buttons if the Inspector list was left empty
+        
         if (previewButtons == null || previewButtons.Count == 0)
         {
             previewButtons = new List<DraggablePreviewButton>(GetComponentsInChildren<DraggablePreviewButton>(true));
@@ -91,7 +89,7 @@ public class HUDLayoutManager : MonoBehaviour
         WireButtons();
         LoadPreviewLayout();
 
-        // Start closed
+        
         if (generalPanel != null) generalPanel.SetActive(false);
         if (hudPanel != null) hudPanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
@@ -142,28 +140,24 @@ public class HUDLayoutManager : MonoBehaviour
     {
         if (settingsPanel == null) return;
 
-        settingsPanel.SetActive(true); // Triggers UIPanelPopUp entrance animation automatically!
+        settingsPanel.SetActive(true); 
         IsSettingsOpen = true;
         ShowTab(defaultTab);
     }
 
-    /// <summary>
-    /// Smoothly closes the Settings window using UIPanelPopUp if attached.
-    /// </summary>
+    
     public void CloseSettings()
     {
         IsEditing = false;
         IsSettingsOpen = false;
 
-        // -----------------------------------------------------------------
-        // CRITICAL FIX: Smoothly play close animation instead of hard snapping off!
-        // -----------------------------------------------------------------
+        
         if (settingsPanel != null && settingsPanel.activeInHierarchy)
         {
             UIPanelPopUp popUp = settingsPanel.GetComponent<UIPanelPopUp>();
             if (popUp != null)
             {
-                // Plays the shrink/slide exit animation and deactivates itself when finished
+                
                 popUp.ClosePanel();
             }
             else
@@ -205,13 +199,13 @@ public class HUDLayoutManager : MonoBehaviour
             hudImg.color = (currentTab == SettingsTab.HUD) ? activeTabColor : inactiveTabColor;
     }
 
-    // --- SAVE, LOAD & RESET ---
+    
 
     public void SaveOnly() => SaveLayout();
 
     public void SaveLayout()
     {
-        // Auto-find if empty
+        
         if (previewButtons == null || previewButtons.Count == 0)
         {
             previewButtons = new List<DraggablePreviewButton>(GetComponentsInChildren<DraggablePreviewButton>(true));
