@@ -103,23 +103,21 @@ public class MainMenuManager : MonoBehaviour
         {
             UIPanelPopUp popUp = panelToHide.GetComponent<UIPanelPopUp>();
 
-            // CASE 1: The panel HAS UIPanelPopUp -> Smoothly play its exit animation and close it
+            // If panel has UIPanelPopUp, play its exit animation and wait
             if (popUp != null)
             {
                 popUp.ClosePanel();
                 yield return new WaitForSecondsRealtime(popUp.closeDuration);
             }
-            // CASE 2: The panel DOES NOT have UIPanelPopUp:
+            // If panel does NOT have UIPanelPopUp, only close it if allowed
             else if (!onlyClosePanelsWithPopUp)
             {
-                // Only close it if onlyClosePanelsWithPopUp is false.
-                // Otherwise, leave it completely untouched so your leftPanel stays on screen!
                 panelToHide.SetActive(false);
                 yield return new WaitForSecondsRealtime(panelTransitionDelay);
             }
         }
 
-        // Open the target panel (if it has UIPanelPopUp, its entrance animation plays automatically!)
+        // Reveal the target panel
         if (panelToShow != null)
         {
             panelToShow.SetActive(true);
@@ -130,13 +128,13 @@ public class MainMenuManager : MonoBehaviour
 
     #endregion
 
-    #region Action Buttons
+    #region Action Buttons & Scene Transitions
 
     private void OnCustomizeButtonPressed()
     {
         if (!string.IsNullOrEmpty(shopSceneName))
         {
-            SceneManager.LoadScene(shopSceneName);
+            LoadingScreen.Load(shopSceneName);
         }
     }
 
@@ -158,12 +156,14 @@ public class MainMenuManager : MonoBehaviour
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             if (transport != null)
             {
-                transport.SetConnectionData("127.0.0.1", 7777, "127.0.0.1");
+                // Port 7776: Dedicated port for Campaign to prevent conflicts with Multiplayer (7778)
+                transport.SetConnectionData("127.0.0.1", 7776, "127.0.0.1");
             }
 
             if (NetworkManager.Singleton.StartHost())
             {
                 Debug.Log($"[Campaign] Starting Campaign Mode as Host. Loading: {campaignSceneName}");
+                // Netcode handles this scene load; LoadingScreen hooks it automatically
                 NetworkManager.Singleton.SceneManager.LoadScene(campaignSceneName, LoadSceneMode.Single);
             }
             else
@@ -186,7 +186,8 @@ public class MainMenuManager : MonoBehaviour
                 NetworkManager.Singleton.Shutdown();
             }
 
-            SceneManager.LoadScene(multiplayerLobbySceneName);
+            // LOADING SCREEN: MainMenu -> MultiplayerLobby
+            LoadingScreen.Load(multiplayerLobbySceneName);
         }
     }
 

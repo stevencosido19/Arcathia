@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
@@ -27,13 +29,14 @@ public class MultiplayerLobbyManager : MonoBehaviour
 
     [Header("Network Settings")]
     public string mainGameStageScene = "GameStage1";
-    public ushort defaultPort = 7777;
+    [Tooltip("Multiplayer port. Default is 7778 to avoid conflicts with 7777 and Campaign (7776).")]
+    public ushort defaultPort = 7778;
 
     private UnityTransport transport;
 
     void Start()
     {
-        // If returning to the lobby from a game, shut down cleanly so the player starts fresh
+        // Cleanly shut down any existing network session when entering lobby
         if (NetworkManager.Singleton != null && (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsServer))
         {
             NetworkManager.Singleton.Shutdown();
@@ -50,7 +53,7 @@ public class MultiplayerLobbyManager : MonoBehaviour
         if (startMatchButton != null) startMatchButton.onClick.AddListener(OnStartMatchPressed);
         if (leaveRoomButton != null) leaveRoomButton.onClick.AddListener(OnLeaveRoomPressed);
 
-        // Pre-fill local IP address
+        // Pre-fill local IP address in the box for convenience
         if (ipInputField != null && string.IsNullOrEmpty(ipInputField.text))
         {
             ipInputField.text = GetLocalIPAddress();
@@ -61,7 +64,6 @@ public class MultiplayerLobbyManager : MonoBehaviour
     {
         if (NetworkManager.Singleton != null)
         {
-            // Remove first to avoid duplicate bindings
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
 
@@ -90,22 +92,46 @@ public class MultiplayerLobbyManager : MonoBehaviour
             return;
         }
 
-        string localIP = GetLocalIPAddress();
-        SetConnectionAddress(localIP);
+        if (NetworkManager.Singleton.IsListening)
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+
+        if (statusText != null) statusText.text = "Starting Host...";
+
+        if (transport == null)
+        {
+            transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+        }
+
+        if (transport == null)
+        {
+            Debug.LogError("[MultiplayerLobby] UnityTransport component missing from NetworkManager GameObject!");
+            if (statusText != null) statusText.text = "Error: UnityTransport missing!";
+            return;
+        }
+
+        // Host connects internally via loopback ("127.0.0.1"), server listens on all interfaces ("0.0.0.0")
+        transport.SetConnectionData("127.0.0.1", defaultPort, "0.0.0.0");
 
         if (NetworkManager.Singleton.StartHost())
         {
-            Debug.Log($"[WLAN] Host started at IP: {localIP}:{defaultPort}");
+            string localIP = GetLocalIPAddress();
+            Debug.Log($"<color=green>[WLAN SUCCESS] Host started! Other players can join using: {localIP}:{defaultPort}</color>");
+
             if (hostIpDisplayText != null)
             {
-                hostIpDisplayText.text = $"<b>HOST IP:</b> {localIP}\n<size=80%>(Share this IP with other mobile players)</size>";
+                hostIpDisplayText.text = $"<b>HOST IP:</b> {localIP}\n<size=80%>(Share this IP with other mobile/LAN players)</size>";
             }
+
             ShowRoomPanel();
             UpdatePlayerListUI();
+            if (statusText != null) statusText.text = "";
         }
         else
         {
-            if (statusText != null) statusText.text = "Failed to start Host!";
+            Debug.LogError("[MultiplayerLobby] Failed to start Host!");
+            if (statusText != null) statusText.text = "Failed to start Host. Check console.";
         }
     }
 
@@ -126,13 +152,26 @@ public class MultiplayerLobbyManager : MonoBehaviour
             return;
         }
 
-        SetConnectionAddress(targetIP);
+        if (transport == null)
+        {
+            transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+        }
+
+        if (transport != null)
+        {
+            transport.SetConnectionData(targetIP, defaultPort);
+        }
+        else
+        {
+            Debug.LogError("[MultiplayerLobby] UnityTransport missing from NetworkManager!");
+            return;
+        }
 
         if (statusText != null) statusText.text = $"Connecting to {targetIP}...";
 
         if (NetworkManager.Singleton.StartClient())
         {
-            Debug.Log($"[WLAN] Client joining Host at {targetIP}:{defaultPort}");
+            Debug.Log($"[WLAN] Client connecting to Host at {targetIP}:{defaultPort}");
             if (hostIpDisplayText != null)
             {
                 hostIpDisplayText.text = $"<b>CONNECTED TO:</b> {targetIP}";
@@ -146,44 +185,50 @@ public class MultiplayerLobbyManager : MonoBehaviour
         }
     }
 
-    private void SetConnectionAddress(string ipAddress)
-    {
-        if (NetworkManager.Singleton != null)
-        {
-            transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
-            if (transport != null)
-            {
-                transport.SetConnectionData(ipAddress, defaultPort, "0.0.0.0");
-            }
-            else
-            {
-                Debug.LogError("[MultiplayerLobby] UnityTransport missing from NetworkManager!");
-            }
-        }
-    }
-
     private string GetLocalIPAddress()
     {
-        var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
-        foreach (var ip in host.AddressList)
+        try
         {
-            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+            foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
             {
-                return ip.ToString();
+                if (item.OperationalStatus == OperationalStatus.Up &&
+                    (item.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 ||
+                     item.NetworkInterfaceType == NetworkInterfaceType.Ethernet))
+                {
+                    foreach (UnicastIPAddressInformation ip in item.GetIPProperties().UnicastAddresses)
+                    {
+                        if (ip.Address.AddressFamily == AddressFamily.InterNetwork)
+                        {
+                            string ipStr = ip.Address.ToString();
+                            if (!ipStr.StartsWith("169.254"))
+                            {
+                                return ipStr;
+                            }
+                        }
+                    }
+                }
             }
         }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"[MultiplayerLobby] Could not parse network interfaces: {ex.Message}");
+        }
+
         return "127.0.0.1";
     }
 
     private void OnBackToMainMenuPressed()
     {
-        // Cleanly shut down any active host/client before going back
+        Debug.Log("<color=cyan>[Lobby] 'Back to Main Menu' button clicked!</color>");
+
+        // 1. Cleanly shut down active host/client session
         if (NetworkManager.Singleton != null && (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsServer))
         {
             NetworkManager.Singleton.Shutdown();
         }
 
-        SceneManager.LoadScene("MainMenu");
+        // 2. Play loading screen when going back to Main Menu
+        LoadingScreen.Load("MainMenu");
     }
 
     #endregion

@@ -16,7 +16,7 @@ public class ShopUIManager : MonoBehaviour
     public GameObject slotPrefab;
     public Button actionButton;
     public TextMeshProUGUI actionButtonText;
-    public Button backToMenuButton; // Renamed from playButton
+    public Button backToMenuButton;
 
     [Header("3D Preview Holders")]
     public Transform hatHolder;
@@ -35,9 +35,22 @@ public class ShopUIManager : MonoBehaviour
         RefreshPreviewModel();
         PopulateGrid(currentCategory);
 
-        // Link back to main menu
-        backToMenuButton.onClick.AddListener(() => SceneManager.LoadScene("MainMenu"));
-        actionButton.onClick.AddListener(OnActionClicked);
+        // Link back button to the loading screen transition
+        if (backToMenuButton != null)
+        {
+            backToMenuButton.onClick.AddListener(OnBackToMenuClicked);
+        }
+
+        if (actionButton != null)
+        {
+            actionButton.onClick.AddListener(OnActionClicked);
+        }
+    }
+
+    private void OnBackToMenuClicked()
+    {
+        // Smoothly fades through the LoadingScreen back to MainMenu
+        LoadingScreen.Load("MainMenu");
     }
 
     // --- NEW MOBILE PROTOTYPE METHODS ---
@@ -51,7 +64,7 @@ public class ShopUIManager : MonoBehaviour
 
     public void ResetPrototypeData()
     {
-        saveData = new PlayerSaveData(); 
+        saveData = new PlayerSaveData();
         SaveManager.SaveData(saveData);
         UpdateMoneyDisplay();
         UpdateActionButtonState();
@@ -63,7 +76,7 @@ public class ShopUIManager : MonoBehaviour
     {
         currentCategory = (CosmeticCategory)categoryIndex;
         selectedItem = null;
-        actionButton.gameObject.SetActive(false);
+        if (actionButton != null) actionButton.gameObject.SetActive(false);
         PopulateGrid(currentCategory);
     }
 
@@ -80,7 +93,7 @@ public class ShopUIManager : MonoBehaviour
             {
                 GameObject slot = Instantiate(slotPrefab, itemGrid);
                 slot.transform.GetChild(0).GetComponent<Image>().sprite = item.icon;
-                
+
                 Button btn = slot.GetComponent<Button>();
                 btn.onClick.AddListener(() => SelectItem(item));
             }
@@ -90,13 +103,13 @@ public class ShopUIManager : MonoBehaviour
     void SelectItem(CosmeticItem item)
     {
         selectedItem = item;
-        actionButton.gameObject.SetActive(true);
+        if (actionButton != null) actionButton.gameObject.SetActive(true);
         UpdateActionButtonState();
     }
 
     void UpdateActionButtonState()
     {
-        if (selectedItem == null) return;
+        if (selectedItem == null || actionButtonText == null) return;
 
         bool isUnlocked = saveData.unlockedItems.Contains(selectedItem.itemID);
         string currentEquipped = GetEquippedIdForCategory(selectedItem.category);
@@ -124,15 +137,15 @@ public class ShopUIManager : MonoBehaviour
                 saveData.unlockedItems.Add(selectedItem.itemID);
                 UpdateMoneyDisplay();
             }
-            else return; 
+            else return;
         }
         else if (currentEquipped == selectedItem.itemID)
         {
-            SetEquippedIdForCategory(selectedItem.category, ""); 
+            SetEquippedIdForCategory(selectedItem.category, "");
         }
         else
         {
-            SetEquippedIdForCategory(selectedItem.category, selectedItem.itemID); 
+            SetEquippedIdForCategory(selectedItem.category, selectedItem.itemID);
         }
 
         SaveManager.SaveData(saveData);
@@ -151,6 +164,8 @@ public class ShopUIManager : MonoBehaviour
 
     void ToggleCosmetic(Transform holder, string equippedID)
     {
+        if (holder == null) return;
+
         for (int i = 0; i < holder.childCount; i++)
         {
             holder.GetChild(i).gameObject.SetActive(false);
@@ -165,7 +180,13 @@ public class ShopUIManager : MonoBehaviour
         }
     }
 
-    private void UpdateMoneyDisplay() => moneyText.text = "$" + saveData.currency;
+    private void UpdateMoneyDisplay()
+    {
+        if (moneyText != null)
+        {
+            moneyText.text = "$" + saveData.currency;
+        }
+    }
 
     private string GetEquippedIdForCategory(CosmeticCategory cat)
     {

@@ -87,7 +87,7 @@ public class ShootingEnemyAI : NetworkBehaviour
         if (agent == null || !agent.isOnNavMesh) return;
         if (isTraversingLink) return;
 
-        // Handle jumping across obstacles / elevated NavMeshLinks
+        
         if (agent.isOnOffMeshLink)
         {
             StartCoroutine(JumpOverLinkRoutine());
@@ -110,7 +110,7 @@ public class ShootingEnemyAI : NetworkBehaviour
         }
     }
 
-    // --- DETECTION TRIGGER CALLBACKS (Called by EnemyDetectionZone) ---
+   
 
     public void OnPlayerDetected(Transform player)
     {
@@ -128,11 +128,11 @@ public class ShootingEnemyAI : NetworkBehaviour
         }
     }
 
-    // --- AI STATES ---
+    
 
     private void UpdateWanderingState()
     {
-        // Once enemy arrives near the destination, count down wait time before picking a new spot
+        
         if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.5f)
         {
             waitTimer += Time.deltaTime;
@@ -148,7 +148,7 @@ public class ShootingEnemyAI : NetworkBehaviour
     private void PickNewWanderDestination()
     {
         Vector3 randomDirection = Random.insideUnitSphere * wanderRadius;
-        randomDirection += originPosition; // Keeps enemy tethered around its spawn zone
+        randomDirection += originPosition; 
 
         if (NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, wanderRadius, NavMesh.AllAreas))
         {
@@ -185,7 +185,7 @@ public class ShootingEnemyAI : NetworkBehaviour
             return;
         }
 
-        // Inside shooting range: stop and attack
+        
         if (!agent.isStopped) agent.isStopped = true;
         RotateTowards(playerTarget.position);
 
@@ -205,7 +205,7 @@ public class ShootingEnemyAI : NetworkBehaviour
             return true;
         }
 
-        // Countdown when the player steps outside the detection collider
+        
         if (targetLostTimer > 0f)
         {
             targetLostTimer -= Time.deltaTime;
@@ -279,7 +279,7 @@ public class ShootingEnemyAI : NetworkBehaviour
             timer += Time.deltaTime;
             float progress = timer / jumpDuration;
 
-            // Parabolic curve: rises up into the air and lands cleanly on the other side
+            
             Vector3 currentPos = Vector3.Lerp(startPos, endPos, progress);
             currentPos.y += 4f * jumpHeight * progress * (1f - progress);
 
@@ -297,7 +297,7 @@ public class ShootingEnemyAI : NetworkBehaviour
         isTraversingLink = false;
     }
 
-    // --- DAMAGE SYSTEM & SCORE CONNECTION ---
+    
 
     public void TakeDamage(float amount, PlayerScore attacker = null)
     {
@@ -318,14 +318,14 @@ public class ShootingEnemyAI : NetworkBehaviour
 
     private void Die()
     {
-        // 1. Award +1 score to the killer
+        
         if (lastAttacker != null)
         {
             lastAttacker.AddScore(1);
         }
         else
         {
-            // Fallback for campaign: award to the active player in the scene
+            
             PlayerScore singlePlayer = Object.FindFirstObjectByType<PlayerScore>();
             if (singlePlayer != null)
             {
@@ -333,19 +333,19 @@ public class ShootingEnemyAI : NetworkBehaviour
             }
         }
 
-        // 2. Despawn the enemy network object
+        
         GetComponent<NetworkObject>().Despawn(true);
     }
 
-    // --- VISUAL SCENE VIEW GIZMOS ---
+    
 
     private void OnDrawGizmosSelected()
     {
-        // Red wireframe sphere = Shooting Range
+        
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, shootingRange);
 
-        // Cyan wireframe sphere = Wandering Radius
+        
         Gizmos.color = Color.cyan;
         Vector3 center = Application.isPlaying ? originPosition : transform.position;
         Gizmos.DrawWireSphere(center, wanderRadius);

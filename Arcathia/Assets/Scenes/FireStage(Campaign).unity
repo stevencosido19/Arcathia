@@ -1734,7 +1734,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &40255499
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8984,7 +8984,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
   GlobalObjectIdHash: 2675303314
   InScenePlacedSourceGlobalObjectIdHash: 0
-  m_InScenePlacedDisabledByDefault: 0
+  m_InScenePlacedDisabledByDefault: 1
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
@@ -14345,14 +14345,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16ac75d244b300643981cbf715edb9b8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HUDLayoutManager
-  customizationPanel: {fileID: 1578772433}
-  movableButtons:
-  - {fileID: 1916996197}
-  - {fileID: 381879776}
-  - {fileID: 1941603412}
-  - {fileID: 1876245210}
-  gameplayHUDGroup: {fileID: 2056526193}
   IsEditing: 0
+  settingsPanel: {fileID: 0}
+  generalPanel: {fileID: 0}
+  hudPanel: {fileID: 0}
+  generalTabButton: {fileID: 0}
+  hudTabButton: {fileID: 0}
+  backButton: {fileID: 0}
+  openSettingsButton: {fileID: 0}
+  previewButtons: []
+  saveLayoutButton: {fileID: 0}
+  resetLayoutButton: {fileID: 0}
+  colorizeActiveTab: 1
+  activeTabColor: {r: 0.48, g: 0.05, b: 0.85, a: 1}
+  inactiveTabColor: {r: 0.25, g: 0.02, b: 0.45, a: 1}
+  defaultTab: 0
+  closeWithEscape: 1
 --- !u!1 &1413223217
 GameObject:
   m_ObjectHideFlags: 0
@@ -21860,27 +21868,9 @@ MonoBehaviour:
   - {fileID: 191047405}
   - {fileID: 1481181001}
   - {fileID: 1744462995}
-  fireAmmoDots:
-  - {fileID: 917682891}
-  - {fileID: 713186554}
-  - {fileID: 586980425}
-  - {fileID: 1283101975}
-  - {fileID: 894779184}
-  - {fileID: 694428244}
-  waterAmmoDots:
-  - {fileID: 1891705581}
-  - {fileID: 751181159}
-  - {fileID: 68494894}
-  - {fileID: 763044964}
-  - {fileID: 2115262969}
-  - {fileID: 1950062605}
-  lightningAmmoDots:
-  - {fileID: 327681691}
-  - {fileID: 557150723}
-  - {fileID: 228350429}
-  - {fileID: 974541333}
-  - {fileID: 967931843}
-  - {fileID: 1350537048}
+  fireAmmoFill: {fileID: 0}
+  waterAmmoFill: {fileID: 0}
+  lightningAmmoFill: {fileID: 0}
   attackButton: {fileID: 1941603409}
   doubleTapThreshold: 0.3
   swipeThreshold: 50
