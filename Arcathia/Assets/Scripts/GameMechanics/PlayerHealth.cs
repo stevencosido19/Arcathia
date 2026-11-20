@@ -27,12 +27,14 @@ public class PlayerHealth : NetworkBehaviour
     private PlayerPowerUpHandler powerUpHandler;
     private CharacterController characterController;
     private Collider playerCollider;
+    private Animator playerAnimator;
 
     private void Awake()
     {
         powerUpHandler = GetComponent<PlayerPowerUpHandler>();
         characterController = GetComponent<CharacterController>();
         playerCollider = GetComponent<Collider>();
+        playerAnimator = GetComponentInChildren<Animator>();
     }
 
     public override void OnNetworkSpawn()
@@ -66,9 +68,24 @@ public class PlayerHealth : NetworkBehaviour
         string attackerName = attacker != null ? attacker.name : "Environment/Self";
         Debug.Log($"[PlayerHealth] {gameObject.name} took {damage} damage from {attackerName}. Current HP: {currentHealth.Value}");
 
+        // If player took damage and survived, play hit reaction across network
+        if (currentHealth.Value > 0)
+        {
+            PlayDamageAnimationClientRpc();
+        }
+
         if (currentHealth.Value <= 0)
         {
             Die(attacker);
+        }
+    }
+
+    [ClientRpc]
+    private void PlayDamageAnimationClientRpc()
+    {
+        if (playerAnimator != null)
+        {
+            playerAnimator.SetTrigger("TakeDamage");
         }
     }
 
@@ -76,7 +93,6 @@ public class PlayerHealth : NetworkBehaviour
     {
         isDead.Value = true;
 
-        // 1. Award score to killer
         if (killer != null && killer != NetworkObject)
         {
             if (killer.TryGetComponent<PlayerScore>(out PlayerScore killerScore))
@@ -85,14 +101,11 @@ public class PlayerHealth : NetworkBehaviour
             }
         }
 
-        // 2. Hide body and disable collisions on all clients
         SetPlayerDeadStateClientRpc(true);
 
-        // 3. Notify owner client to show Death UI & start Spectator Camera
         ulong killerId = (killer != null) ? killer.NetworkObjectId : 0;
         NotifyDeathClientRpc(respawnDelay, killerId);
 
-        // 4. Start delayed respawn countdown on Server
         StartCoroutine(RespawnTimerRoutine());
     }
 
@@ -100,7 +113,6 @@ public class PlayerHealth : NetworkBehaviour
     {
         yield return new WaitForSeconds(respawnDelay);
 
-        // Fetch spawn point from manager
         Vector3 newPos = transform.position;
         Quaternion newRot = transform.rotation;
 
@@ -114,11 +126,9 @@ public class PlayerHealth : NetworkBehaviour
             }
         }
 
-        // Restore health and mark alive
         currentHealth.Value = maxHealth;
         isDead.Value = false;
 
-        // Reposition and restore player across the network
         RespawnClientRpc(newPos, newRot);
         SetPlayerDeadStateClientRpc(false);
 
@@ -130,13 +140,11 @@ public class PlayerHealth : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        // Show Death Screen with countdown
         if (DeathScreenUI.Instance != null)
         {
             DeathScreenUI.Instance.ShowDeathScreen(delay);
         }
 
-        // Switch camera to spectator mode
         if (ThirdPersonCamera.LocalCamera != null)
         {
             ThirdPersonCamera.LocalCamera.StartSpectating(killerNetId);
@@ -146,15 +154,12 @@ public class PlayerHealth : NetworkBehaviour
     [ClientRpc]
     private void SetPlayerDeadStateClientRpc(bool dead)
     {
-        // SAFE VISIBILITY FIX:
-        // Only disable characterModelRoot if it is a CHILD object, never the root GameObject itself!
         if (characterModelRoot != null && characterModelRoot != this.gameObject)
         {
             characterModelRoot.SetActive(!dead);
         }
         else
         {
-            // Hide all 3D mesh renderers so the character disappears visually
             Renderer[] allRenderers = GetComponentsInChildren<Renderer>(true);
             foreach (var r in allRenderers)
             {
@@ -162,7 +167,6 @@ public class PlayerHealth : NetworkBehaviour
             }
         }
 
-        // Toggle movement and collisions
         if (characterController != null) characterController.enabled = !dead;
         if (playerCollider != null) playerCollider.enabled = !dead;
     }
@@ -178,13 +182,11 @@ public class PlayerHealth : NetworkBehaviour
 
         if (IsOwner)
         {
-            // Close Death Screen UI
             if (DeathScreenUI.Instance != null)
             {
                 DeathScreenUI.Instance.HideDeathScreen();
             }
 
-            // Return camera to owner
             if (ThirdPersonCamera.LocalCamera != null)
             {
                 ThirdPersonCamera.LocalCamera.StopSpectating();

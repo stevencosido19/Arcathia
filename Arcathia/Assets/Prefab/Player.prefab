@@ -3218,6 +3218,7 @@ MonoBehaviour:
   jumpGravityMultiplier: 10
   fallGravityMultiplier: 10
   maxFallSpeed: 55
+  jumpGroundIgnoreTime: 0.1
 --- !u!114 &-2919895037772058264
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3280,6 +3281,8 @@ MonoBehaviour:
   fireProjectilePrefab: {fileID: 2684134513715926368, guid: e26a65b6874894e4b98fa59637422934, type: 3}
   waterProjectilePrefab: {fileID: 5295057511820168833, guid: 75e60ac4b4b6ab84ab6b90cfcd58b922, type: 3}
   lightningProjectilePrefab: {fileID: 2842848715062395188, guid: 1e0333437fbba3249ae784384687457f, type: 3}
+  castPoint: {fileID: 0}
+  maxCastPointDistance: 4
   aimLayerMask:
     serializedVersion: 2
     m_Bits: 0
@@ -3287,6 +3290,12 @@ MonoBehaviour:
   crosshairViewportPoint: {x: 0.5, y: 0.5}
   debugAim: 0
   maxAmmo: 6
+  ammoPerCorrectAnswer: 1
+  customizePerSpellType: 0
+  fireAmmoGain: 1
+  waterAmmoGain: 1
+  lightningAmmoGain: 1
+  overrideQuizPassedAmount: 1
 --- !u!114 &3087285356256863753
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3306,7 +3315,14 @@ MonoBehaviour:
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 100
   maxHealth: 100
+  respawnDelay: 5
   pointsPerKill: 1
+  characterModelRoot: {fileID: 0}
+  isDead:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
 --- !u!114 &-1558075404931352423
 MonoBehaviour:
   m_ObjectHideFlags: 0

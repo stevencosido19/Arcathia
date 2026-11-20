@@ -24,6 +24,22 @@ public class PlayerMagicNetwork : NetworkBehaviour
 
     [Header("Ammo Settings")]
     public int maxAmmo = 3;
+
+    [Header("Correct Answer Ammo Reward")]
+    [Tooltip("Default ammo gained when answering a question correctly.")]
+    [Min(1)]
+    public int ammoPerCorrectAnswer = 1;
+
+    [Tooltip("Enable to set different ammo rewards for Fire, Water, and Lightning.")]
+    public bool customizePerSpellType = false;
+    [Min(1)] public int fireAmmoGain = 1;
+    [Min(1)] public int waterAmmoGain = 1;
+    [Min(1)] public int lightningAmmoGain = 1;
+
+    [Tooltip("If enabled, AddSpellAmmo() uses the Inspector reward settings above when adding ammo " +
+             "(even if your quiz script passes a hardcoded 1).")]
+    public bool overrideQuizPassedAmount = true;
+
     private int fireAmmo = 0;
     private int waterAmmo = 0;
     private int lightningAmmo = 0;
@@ -31,6 +47,7 @@ public class PlayerMagicNetwork : NetworkBehaviour
     private PlayerPowerUpHandler powerUpHandler;
     private SpellbookUI spellbookUI;
     private Camera mainCamera;
+    private Animator playerAnimator; // Reference to character Animator
     private bool warnedNoCastPoint;
 
     // Reused buffer so the aim raycast doesn't allocate every shot
@@ -44,6 +61,8 @@ public class PlayerMagicNetwork : NetworkBehaviour
     private void Awake()
     {
         powerUpHandler = GetComponent<PlayerPowerUpHandler>();
+        // Finds the Animator on this GameObject or any child (e.g. child model rig)
+        playerAnimator = GetComponentInChildren<Animator>();
     }
 
     public override void OnNetworkSpawn()
@@ -55,7 +74,38 @@ public class PlayerMagicNetwork : NetworkBehaviour
         }
     }
 
+    public int GetCustomAmmoGain(SpellType type)
+    {
+        if (!customizePerSpellType)
+        {
+            return Mathf.Max(1, ammoPerCorrectAnswer);
+        }
+
+        return type switch
+        {
+            SpellType.Fire => Mathf.Max(1, fireAmmoGain),
+            SpellType.Water => Mathf.Max(1, waterAmmoGain),
+            SpellType.Lightning => Mathf.Max(1, lightningAmmoGain),
+            _ => Mathf.Max(1, ammoPerCorrectAnswer)
+        };
+    }
+
+    // Optional: call this from your quiz script when a question is answered correctly
+    public void AddCorrectAnswerAmmo(SpellType type)
+    {
+        AddExactSpellAmmo(type, GetCustomAmmoGain(type));
+    }
+
     public void AddSpellAmmo(SpellType type, int amount)
+    {
+        int finalAmount = (overrideQuizPassedAmount && amount > 0)
+            ? GetCustomAmmoGain(type)
+            : amount;
+
+        AddExactSpellAmmo(type, finalAmount);
+    }
+
+    public void AddExactSpellAmmo(SpellType type, int amount)
     {
         if (IsMatchOver()) return;
 
@@ -99,6 +149,12 @@ public class PlayerMagicNetwork : NetworkBehaviour
 
         DeductAmmo(type);
 
+        // Play attack animation instantly on local player
+        if (playerAnimator != null)
+        {
+            playerAnimator.SetTrigger("CastSpell");
+        }
+
         // 1. Spawn origin: the Cast Point (hand / staff tip), not the body
         Vector3 spawnPosition = GetSpawnPosition();
 
@@ -109,10 +165,6 @@ public class PlayerMagicNetwork : NetworkBehaviour
         CastSpellServerRpc(type, spawnPosition, aimRotation);
     }
 
-    /// <summary>
-    /// Where spells start. Uses the Cast Point when assigned, otherwise the old
-    /// "in front of the chest" offset so nothing breaks if the reference is missing.
-    /// </summary>
     private Vector3 GetSpawnPosition()
     {
         if (castPoint != null) return castPoint.position;
@@ -132,14 +184,8 @@ public class PlayerMagicNetwork : NetworkBehaviour
         return transform.position + transform.forward * 1.2f + Vector3.up * 1.2f;
     }
 
-    /// <summary>
-    /// Raycasts from the screen crosshair to find the world point the camera is looking at,
-    /// then returns the rotation from the spell spawn point toward that point.
-    /// </summary>
     private Quaternion GetAimRotation(Vector3 spawnPos)
     {
-        // Re-grab the camera if it was never found, was destroyed, or got disabled
-        // (camera swap, Cinemachine, respawn...). A stale cached camera gives a stale aim direction.
         if (mainCamera == null || !mainCamera.isActiveAndEnabled)
         {
             mainCamera = Camera.main;
@@ -148,28 +194,23 @@ public class PlayerMagicNetwork : NetworkBehaviour
         if (mainCamera == null)
         {
             if (debugAim)
-                Debug.LogWarning("[PlayerMagic] No active camera tagged 'MainCamera' found. Falling back to character facing, which is flat. Tag your gameplay camera as MainCamera.");
-            return transform.rotation; // Fallback to character facing direction
+                Debug.LogWarning("[PlayerMagic] No active camera tagged 'MainCamera' found. Falling back to character facing.");
+            return transform.rotation;
         }
 
-        // Ray through the crosshair
         Ray ray = mainCamera.ViewportPointToRay(new Vector3(crosshairViewportPoint.x, crosshairViewportPoint.y, 0f));
 
-        // Third-person fix: start the ray at the spell spawn point's depth along the camera ray.
-        // This way our own body (and anything between the camera and the player) can't block the aim ray.
         float depthToSpawn = Mathf.Max(0f, Vector3.Dot(spawnPos - ray.origin, ray.direction));
         Vector3 rayStart = ray.origin + ray.direction * depthToSpawn;
         float rayLength = Mathf.Max(0.1f, maxAimDistance - depthToSpawn);
 
-        // Default target: far point along the ray (aiming at the sky or something out of range)
         Vector3 targetPoint = rayStart + ray.direction * rayLength;
 
-        // Find the closest hit that isn't part of our own character
         int hitCount = Physics.RaycastNonAlloc(rayStart, ray.direction, aimHits, rayLength, aimLayerMask, QueryTriggerInteraction.Ignore);
         float closestDistance = float.MaxValue;
         for (int i = 0; i < hitCount; i++)
         {
-            if (aimHits[i].transform.IsChildOf(transform)) continue; // skip our own colliders
+            if (aimHits[i].transform.IsChildOf(transform)) continue;
 
             if (aimHits[i].distance < closestDistance)
             {
@@ -178,10 +219,8 @@ public class PlayerMagicNetwork : NetworkBehaviour
             }
         }
 
-        // Direction from the spawn point to the crosshair world point
         Vector3 aimDirection = targetPoint - spawnPos;
 
-        // Target practically at the muzzle: just use the camera's look direction
         if (aimDirection.sqrMagnitude < 0.25f) aimDirection = ray.direction;
 
         aimDirection.Normalize();
@@ -231,8 +270,9 @@ public class PlayerMagicNetwork : NetworkBehaviour
     {
         if (IsMatchOver()) return;
 
-        // The client chose the spawn point (it knows where its animated hand is), so don't trust it blindly:
-        // if it is far from the player, fall back to the safe default position.
+        // Tell other clients to play the casting animation
+        PlayCastSpellAnimationClientRpc();
+
         float maxDist = Mathf.Max(0.5f, maxCastPointDistance);
         if ((spawnPos - transform.position).sqrMagnitude > maxDist * maxDist)
         {
@@ -285,11 +325,19 @@ public class PlayerMagicNetwork : NetworkBehaviour
 
             if (!netObj.IsSpawned)
             {
-                // Make sure the aim rotation is on the object BEFORE it spawns, regardless of how the
-                // pool positions it. The spawn message (and the projectile's launch direction) uses this.
                 netObj.transform.SetPositionAndRotation(spawnPos, spawnRot);
                 netObj.Spawn();
             }
+        }
+    }
+
+    [ClientRpc]
+    private void PlayCastSpellAnimationClientRpc()
+    {
+        // Don't replay on the owner (already played locally for zero latency)
+        if (!IsOwner && playerAnimator != null)
+        {
+            playerAnimator.SetTrigger("CastSpell");
         }
     }
 }
