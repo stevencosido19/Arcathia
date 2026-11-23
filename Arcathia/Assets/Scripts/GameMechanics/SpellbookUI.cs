@@ -53,7 +53,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     [Header("Dependencies")]
     public MathEquationGenerator equationGenerator;
 
-    // Cached Local Player Component References
+    
     private PlayerPowerUpHandler localPowerUpHandler;
     private PlayerMagicNetwork localMagicNetwork;
     private PlayerHealth localPlayerHealth;
@@ -65,7 +65,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     private SpellType currentSpellType = SpellType.Fire;
 
-    // Track state of Rune Lens exclusions PER SPELL TYPE
+    
     private readonly Dictionary<SpellType, HashSet<int>> disabledQuadrantsPerSpell = new Dictionary<SpellType, HashSet<int>>()
     {
         { SpellType.Fire, new HashSet<int>() },
@@ -140,7 +140,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     public void ToggleBookMode()
     {
         if (IsMatchOver()) return;
-        if (HUDLayoutManager.IsLayoutEditing) return; // HUD EDIT MODE: ignore gameplay input
+        if (HUDLayoutManager.IsLayoutEditing) return; 
         currentBookMode = (currentBookMode == BookMode.Spells) ? BookMode.PowerUps : BookMode.Spells;
         UpdateBookUI();
     }
@@ -164,12 +164,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         UpdateBookUI();
     }
 
-    // --- AMMO HUD (image fill) ---
-
-    /// <summary>
-    /// Players start with no ammo, so make sure the fills start empty instead of showing the
-    /// Image's default Fill Amount of 1 (full) until the first ammo change.
-    /// </summary>
+    
     private void InitializeAmmoFills()
     {
         SetupAmmoFill(fireAmmoFill, "fireAmmoFill");
@@ -310,7 +305,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         _ => "NONE"
     };
 
-    // --- INPUT GESTURES ---
+    
 
     public void OnPointerDown(PointerEventData eventData)
     {
@@ -333,7 +328,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void OnDrag(PointerEventData eventData)
     {
-        // HUD EDIT MODE: dragging the spellbook to move it must not also flip pages
+        
         if (IsMatchOver() || HUDLayoutManager.IsLayoutEditing || swipeHandled) return;
 
         Vector2 dragDelta = eventData.position - touchStartPos;
@@ -382,7 +377,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     private void OnSpellbookDoubleTapped()
     {
         if (IsMatchOver()) return;
-        if (HUDLayoutManager.IsLayoutEditing) return; // HUD EDIT MODE: don't use power-ups while rearranging
+        if (HUDLayoutManager.IsLayoutEditing) return; 
 
         if (currentBookMode == BookMode.PowerUps)
         {
@@ -394,7 +389,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         }
     }
 
-    // --- RUNE LENS EFFECT ---
+    
 
     public void ApplyRuneLensEffect()
     {
@@ -428,7 +423,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         UpdateBookUI();
     }
 
-    // --- STANDARD DIAL & SPELL LOGIC ---
+    
 
     private void FetchNewFireProblem()
     {
@@ -494,7 +489,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     private void OnQuadrantSelected(int index)
     {
         if (IsMatchOver()) return;
-        if (HUDLayoutManager.IsLayoutEditing) return; // HUD EDIT MODE: ignore gameplay input
+        if (HUDLayoutManager.IsLayoutEditing) return; 
 
         HashSet<int> currentDisabled = GetDisabledIndices(currentSpellType);
 
@@ -546,7 +541,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     private void OnAttackButtonPressed()
     {
         if (IsMatchOver()) return;
-        if (HUDLayoutManager.IsLayoutEditing) return; // HUD EDIT MODE: ignore gameplay input
+        if (HUDLayoutManager.IsLayoutEditing) return; 
 
         PlayerMagicNetwork localPlayer = GetLocalPlayerMagic();
         if (localPlayer != null)
@@ -591,7 +586,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         }
     }
 
-    // --- CACHED LOCAL PLAYER GETTERS ---
+    
 
     private PlayerMagicNetwork GetLocalPlayerMagic(bool throttled = false)
     {

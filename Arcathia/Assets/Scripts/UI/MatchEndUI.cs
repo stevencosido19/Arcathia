@@ -11,16 +11,16 @@ public class MatchEndUI : MonoBehaviour
     public TMP_Text matchTimerText;
 
     [Header("Gameplay HUD Container (Hidden on Match End)")]
-    public GameObject gameplayHUD; // Drag your Gameplay HUD/Canvas parent panel here
+    public GameObject gameplayHUD; 
 
     [Header("End Game Panel UI")]
     public GameObject endGamePanel;
     public Transform leaderboardContainer;
-    public GameObject leaderboardRowPrefab; // Entry prefab with Rank, Player Name, Avatar, Kills
+    public GameObject leaderboardRowPrefab; 
 
     [Header("Navigation Buttons & Settings")]
     public Button mainMenuButton;
-    public string mainMenuSceneName = "MainMenu"; // Exact name of your Main Menu scene in Build Settings
+    public string mainMenuSceneName = "MainMenu"; 
 
     [Header("Fallback Text Mode (If no prefab assigned)")]
     public TMP_Text rankingSummaryText;
@@ -45,10 +45,10 @@ public class MatchEndUI : MonoBehaviour
     {
         if (MatchManager.Instance == null) return;
 
-        // 1. Update live match countdown timer display
+        
         UpdateTimerDisplay(MatchManager.Instance.timeRemaining.Value);
 
-        // 2. Check for game end trigger
+        
         if (MatchManager.Instance.isMatchOver.Value && !hasDisplayedEndGame)
         {
             hasDisplayedEndGame = true;
@@ -68,13 +68,13 @@ public class MatchEndUI : MonoBehaviour
 
     private void ShowEndGameRankings()
     {
-        // 1. Hide the main gameplay HUD (Spellbook, Attack Buttons, Joystick/Mobile Controls)
+        
         if (gameplayHUD != null)
         {
             gameplayHUD.SetActive(false);
         }
 
-        // 2. Disable local player movement controller on match end
+        
         PlayerHealth[] allPlayers = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
         foreach (PlayerHealth player in allPlayers)
         {
@@ -85,23 +85,23 @@ public class MatchEndUI : MonoBehaviour
             }
         }
 
-        // 3. Display the End Game Results overlay
+        
         if (endGamePanel != null)
         {
             endGamePanel.SetActive(true);
         }
 
-        // 4. Gather all connected players with PlayerScore
+        
         PlayerScore[] players = FindObjectsByType<PlayerScore>(FindObjectsSortMode.None);
         List<PlayerScore> sortedPlayers = new List<PlayerScore>(players);
 
-        // 5. Sort descending by kills/score (highest score first)
+        
         sortedPlayers.Sort((a, b) => b.score.Value.CompareTo(a.score.Value));
 
-        // 6. Display rankings using container prefab rows if assigned
+        
         if (leaderboardContainer != null && leaderboardRowPrefab != null)
         {
-            // Clear existing elements
+            
             foreach (Transform child in leaderboardContainer)
             {
                 Destroy(child.gameObject);
@@ -128,7 +128,7 @@ public class MatchEndUI : MonoBehaviour
                 }
             }
         }
-        // Fallback to single text output block
+        
         else if (rankingSummaryText != null)
         {
             rankingSummaryText.text = "<b>FINAL RANKINGS</b>\n\n";
@@ -143,18 +143,16 @@ public class MatchEndUI : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Cleanly shuts down Netcode and loads the Main Menu scene.
-    /// </summary>
+    
     public void ReturnToMainMenu()
     {
-        // 1. Shut down host/client network session if active
+        
         if (NetworkManager.Singleton != null)
         {
             NetworkManager.Singleton.Shutdown();
         }
 
-        // 2. Load Main Menu scene
+        
         SceneManager.LoadScene(mainMenuSceneName);
     }
 }

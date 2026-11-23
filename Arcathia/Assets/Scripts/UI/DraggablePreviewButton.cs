@@ -62,10 +62,7 @@ public class DraggablePreviewButton : MonoBehaviour, IDragHandler, IBeginDragHan
         rectTransform.anchoredPosition = pos;
     }
 
-    /// <summary>
-    /// Accurately converts the button's world position into 0.0 to 1.0 percentage coordinates
-    /// regardless of what anchors or pivots are used.
-    /// </summary>
+    
     public Vector2 GetNormalizedPosition()
     {
         if (previewContainerRect == null)

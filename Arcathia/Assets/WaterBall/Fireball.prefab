@@ -14915,7 +14915,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   speed: 40
   lifeTime: 4
-  damage: 15
+  damage: 20
   damageHitboxPoint: {fileID: 0}
   damageHitboxOffset: {x: 0, y: 0, z: 0}
   damageRadius: 1.86
@@ -14935,11 +14935,11 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.15
+  m_Radius: 0.03
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &-5595849909428399278
 MonoBehaviour:

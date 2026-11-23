@@ -26,13 +26,13 @@ public class LoadingScreen : MonoBehaviour
     [SerializeField] private float readyTimeout = 10f;
     [SerializeField] private float networkLoadTimeout = 30f;
 
-    // ---- NEW: smooth bar ------------------------------------------------
+    
     [Header("Progress Smoothing")]
     [Tooltip("Higher = softer ease in/out of the bar")]
     [SerializeField, Range(0.01f, 2f)] private float progressSmoothTime = 0.25f;
     [Tooltip("Slowest time the bar may take to go 0% -> 100%. This is what makes an instant 0->100 jump still slide. Lower = faster loads.")]
     [SerializeField] private float minFullFillDuration = 1.2f;
-    // ---------------------------------------------------------------------
+    
 
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
@@ -47,7 +47,7 @@ public class LoadingScreen : MonoBehaviour
     private NetworkSceneManager subscribedSceneManager;
     private int lastPercent = -1;
 
-    // NEW: target = where loading really is, shown = what the bar displays
+    
     private float targetProgress;
     private float shownProgress;
     private float progressVelocity;
@@ -77,9 +77,7 @@ public class LoadingScreen : MonoBehaviour
             return;
         }
 
-        // -------------------------------------------------------------
-        // CRITICAL FIX: Start 100% covered on first boot so no lag/empty scene is visible!
-        // -------------------------------------------------------------
+        
         if (startCoveredOnBoot && !hasBootedOnce)
         {
             canvasGroup.alpha = 1f;
@@ -108,7 +106,7 @@ public class LoadingScreen : MonoBehaviour
         }
 
         EnsureSceneManagerSubscription();
-        UpdateSmoothProgress(); // NEW
+        UpdateSmoothProgress(); 
     }
 
     private void OnDestroy()
@@ -148,9 +146,9 @@ public class LoadingScreen : MonoBehaviour
     {
         offlineLoadRunning = true;
         readyConditions.Clear();
-        ResetProgress(); // CHANGED: was SetProgress(0f)
+        ResetProgress(); 
 
-        // If not already covered, fade in first
+        
         if (canvasGroup.alpha < 0.99f)
         {
             yield return Fade(1f, fadeDuration);
@@ -158,7 +156,7 @@ public class LoadingScreen : MonoBehaviour
 
         float shownAt = Time.unscaledTime;
 
-        // Load asynchronously in background (prevents main thread stutter)
+        
         AsyncOperation op = SceneManager.LoadSceneAsync(sceneName);
         if (op == null)
         {
@@ -175,7 +173,7 @@ public class LoadingScreen : MonoBehaviour
         }
         SetProgress(1f);
 
-        // NEW: let the bar visibly slide to 100% before the scene switches
+        
         yield return WaitForBarFull();
 
         while (Time.unscaledTime - shownAt < minimumShowTime) yield return null;
@@ -188,7 +186,7 @@ public class LoadingScreen : MonoBehaviour
         yield return Resources.UnloadUnusedAssets();
         yield return new WaitForSecondsRealtime(settleTime);
 
-        // Smoothly reveal the loaded scene!
+        
         yield return Fade(0f, fadeDuration);
         offlineLoadRunning = false;
         Log($"Finished loading '{sceneName}'.");
@@ -262,7 +260,7 @@ public class LoadingScreen : MonoBehaviour
     {
         canvasGroup.alpha = 1f;
         canvasGroup.blocksRaycasts = true;
-        ResetProgress(); // CHANGED: was SetProgress(0f)
+        ResetProgress(); 
         float shownAt = Time.unscaledTime;
 
         float timeoutAt = Time.unscaledTime + networkLoadTimeout;
@@ -273,7 +271,7 @@ public class LoadingScreen : MonoBehaviour
         }
         SetProgress(1f);
 
-        // NEW: let the bar visibly slide to 100%
+        
         yield return WaitForBarFull();
 
         yield return WaitForReadyConditions();
@@ -327,15 +325,13 @@ public class LoadingScreen : MonoBehaviour
         canvasGroup.blocksRaycasts = target > 0f;
     }
 
-    // ===================== SMOOTH PROGRESS (NEW) =====================
-
-    /// <summary>Tell the bar where loading really is (0-1). Can jump 0 -> 1, the bar still slides. Never goes backwards.</summary>
+    
     private void SetProgress(float progress01)
     {
         targetProgress = Mathf.Max(targetProgress, Mathf.Clamp01(progress01));
     }
 
-    /// <summary>Back to 0% instantly (start of a new load).</summary>
+    
     private void ResetProgress()
     {
         targetProgress = 0f;
@@ -345,7 +341,7 @@ public class LoadingScreen : MonoBehaviour
         ApplyProgressVisual();
     }
 
-    /// <summary>Runs every frame (unscaled time) and eases the shown value toward the target.</summary>
+    
     private void UpdateSmoothProgress()
     {
         if (shownProgress == targetProgress) return;
@@ -354,7 +350,7 @@ public class LoadingScreen : MonoBehaviour
         shownProgress = Mathf.SmoothDamp(shownProgress, targetProgress, ref progressVelocity,
             progressSmoothTime, maxSpeed, Time.unscaledDeltaTime);
 
-        // SmoothDamp never quite arrives, so snap when close
+        
         if (Mathf.Abs(targetProgress - shownProgress) < 0.002f)
         {
             shownProgress = targetProgress;
@@ -364,7 +360,7 @@ public class LoadingScreen : MonoBehaviour
         ApplyProgressVisual();
     }
 
-    /// <summary>Waits until the bar has visually reached 100% (with a safety timeout).</summary>
+    
     private IEnumerator WaitForBarFull()
     {
         float timeoutAt = Time.unscaledTime + minFullFillDuration + progressSmoothTime * 6f + 1f;
@@ -373,7 +369,7 @@ public class LoadingScreen : MonoBehaviour
 
     private void ApplyProgressVisual()
     {
-        if (progressBar != null) progressBar.value = shownProgress; // smooth, every frame
+        if (progressBar != null) progressBar.value = shownProgress; 
 
         int percent = Mathf.RoundToInt(Mathf.Clamp01(shownProgress) * 100f);
         if (percent == lastPercent) return;
@@ -382,7 +378,7 @@ public class LoadingScreen : MonoBehaviour
         if (statusText != null) statusText.text = $"Loading... {percent}%";
     }
 
-    // =================================================================
+    
 
     private void Log(string message)
     {

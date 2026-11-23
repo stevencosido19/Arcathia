@@ -9,7 +9,7 @@ public class HealthBarUI : MonoBehaviour
 
     [Header("UI References")]
     public Image healthFillImage;
-    public TextMeshProUGUI healthText; // Drag your TextMeshPro object here
+    public TextMeshProUGUI healthText; 
 
     private PlayerHealth localPlayerHealth;
 
@@ -22,7 +22,7 @@ public class HealthBarUI : MonoBehaviour
         }
         Instance = this;
 
-        // Ensure Image component is configured for fillAmount manipulation
+        
         if (healthFillImage != null && healthFillImage.type != Image.Type.Filled)
         {
             healthFillImage.type = Image.Type.Filled;
@@ -32,7 +32,7 @@ public class HealthBarUI : MonoBehaviour
 
     private void Start()
     {
-        // Fallback search if player spawned before HealthBarUI initialized
+        
         if (localPlayerHealth == null)
         {
             TryBindLocalPlayer();
@@ -41,7 +41,7 @@ public class HealthBarUI : MonoBehaviour
 
     public void BindPlayer(PlayerHealth health)
     {
-        // Unsubscribe from existing player
+        
         if (localPlayerHealth != null)
         {
             localPlayerHealth.currentHealth.OnValueChanged -= OnHealthChanged;
@@ -53,7 +53,7 @@ public class HealthBarUI : MonoBehaviour
         {
             localPlayerHealth.currentHealth.OnValueChanged += OnHealthChanged;
 
-            // Force immediate update on bind
+            
             UpdateHealthBar(localPlayerHealth.currentHealth.Value);
             Debug.Log($"[HealthBarUI] Successfully bound to local player: {health.gameObject.name}");
         }
@@ -89,7 +89,7 @@ public class HealthBarUI : MonoBehaviour
     {
         if (localPlayerHealth == null) return;
 
-        // 1. Update Fill Amount (0.0 to 1.0)
+        
         if (healthFillImage != null)
         {
             float fillRatio = (float)newHealth / localPlayerHealth.maxHealth;
@@ -100,7 +100,7 @@ public class HealthBarUI : MonoBehaviour
             Debug.LogWarning("[HealthBarUI] healthFillImage reference missing in Inspector!");
         }
 
-        // 2. Update Text Display (e.g. "100 / 100")
+        
         if (healthText != null)
         {
             healthText.text = $"{newHealth} / {localPlayerHealth.maxHealth}";

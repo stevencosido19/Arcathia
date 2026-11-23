@@ -10,7 +10,7 @@ public class MobileTouchInput : MonoBehaviour
 
     private Vector2 moveStartPosition;
 
-    // Reused every call so we don't allocate garbage on each new touch.
+    
     private readonly System.Collections.Generic.List<RaycastResult> uiRaycastResults =
         new System.Collections.Generic.List<RaycastResult>();
 
@@ -23,9 +23,7 @@ public class MobileTouchInput : MonoBehaviour
 
     private void Update()
     {
-        // -------------------------------------------------------------
-        // Freeze all touch input processing while editing the HUD layout
-        // -------------------------------------------------------------
+        
         if (HUDLayoutManager.IsLayoutEditing)
         {
             ResetAllInputs();
@@ -58,9 +56,7 @@ public class MobileTouchInput : MonoBehaviour
             Vector2 delta = touch.delta.ReadValue();
             var phase = touch.phase.ReadValue();
 
-            // -------------------------------------------------------------
-            // 1. Process Active Movement Touch
-            // -------------------------------------------------------------
+         
             if (fingerId == moveTouchId)
             {
                 moveTouchFoundThisFrame = true;
@@ -78,9 +74,7 @@ public class MobileTouchInput : MonoBehaviour
                 continue;
             }
 
-            // -------------------------------------------------------------
-            // 2. Process Active Camera Look Touch
-            // -------------------------------------------------------------
+   
             if (fingerId == lookTouchId)
             {
                 lookTouchFoundThisFrame = true;
@@ -96,25 +90,23 @@ public class MobileTouchInput : MonoBehaviour
                 continue;
             }
 
-            // -------------------------------------------------------------
-            // 3. Register New Touches (Began Phase)
-            // -------------------------------------------------------------
+         
             if (phase == UnityEngine.InputSystem.TouchPhase.Began)
             {
-                // Ignore if touch started over a UI button/element
+               
                 if (IsPositionOverUI(position))
                 {
                     continue;
                 }
 
-                // Left 50% -> Movement
+               
                 if (position.x <= Screen.width * 0.5f && moveTouchId == -1)
                 {
                     moveTouchId = fingerId;
                     moveStartPosition = position;
                     moveTouchFoundThisFrame = true;
                 }
-                // Right 50% -> Camera Look
+           
                 else if (position.x > Screen.width * 0.5f && lookTouchId == -1)
                 {
                     lookTouchId = fingerId;
@@ -128,9 +120,7 @@ public class MobileTouchInput : MonoBehaviour
             }
         }
 
-        // --- SAFETY RECOVERY ---
-        // Note: touchscreen.touches always has a fixed number of slots (usually 10),
-        // so "touches.Count == 0" is never true. Count the touches actually in progress instead.
+        
         if (activeTouchCount == 0)
         {
             ResetAllInputs();
@@ -150,9 +140,7 @@ public class MobileTouchInput : MonoBehaviour
         }
     }
 
-    // Takes the touch POSITION directly. The old version used touchId as an index into
-    // touches[], but touchId is an ever-increasing id, not a slot number, so it checked the
-    // wrong finger (or bailed out) once ids grew past the slot count.
+
     private bool IsPositionOverUI(Vector2 position)
     {
         if (EventSystem.current == null) return false;

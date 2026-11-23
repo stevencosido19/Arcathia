@@ -11,7 +11,7 @@ public class CosmeticItem : ScriptableObject
     public CosmeticCategory category;
     public int price;
     public Sprite icon;
-    public int modelIndex; // The child index to toggle active in the 3D holder
+    public int modelIndex; 
 }
 
 [Serializable]
@@ -20,7 +20,7 @@ public class PlayerSaveData
     public int currency = 1000;
     public List<string> unlockedItems = new List<string>();
     
-    // Storing equipped IDs by category
+    
     public string equippedHat = "";
     public string equippedFace = "";
     public string equippedAccessory = "";

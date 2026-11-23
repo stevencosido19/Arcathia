@@ -35,12 +35,12 @@ public class UIPanelButton : MonoBehaviour
         switch (action)
         {
             case ButtonAction.Open:
-                // Activating automatically triggers UIPanelPopUp entrance!
+                
                 targetPanel.SetActive(true);
                 break;
 
             case ButtonAction.Close:
-                // Smoothly shrinks and deactivates if it has UIPanelPopUp
+                
                 if (popUp != null && targetPanel.activeInHierarchy)
                 {
                     popUp.ClosePanel();

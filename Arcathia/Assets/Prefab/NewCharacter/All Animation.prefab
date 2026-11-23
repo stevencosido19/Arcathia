@@ -220,7 +220,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   ShowTopMostFoldoutHeaderGroup: 1
   target: {fileID: 8634105201656578145}
-  offset: {x: 0, y: 4, z: -8}
+  offset: {x: 0, y: 5, z: -8}
   touchInput: {fileID: 2676420533537128305}
   rotationSpeed: 0.5
   minVerticalAngle: -40
@@ -1153,6 +1153,7 @@ MonoBehaviour:
   fallGravityMultiplier: 10
   maxFallSpeed: 55
   jumpGroundIgnoreTime: 0.1
+  knockbackDamping: 8
 --- !u!114 &2676420533537128305
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1274,7 +1275,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   fireProjectilePrefab: {fileID: 7836536978560184972, guid: 61cc283e5a66586448d116e31a29aafd, type: 3}
   waterProjectilePrefab: {fileID: 7836536978560184972, guid: 0aa342fb46eb73045ba1fd8f17896bac, type: 3}
-  lightningProjectilePrefab: {fileID: 2842848715062395188, guid: 1e0333437fbba3249ae784384687457f, type: 3}
+  lightningProjectilePrefab: {fileID: 8856837601148015186, guid: 56c9f428a53bb85469a900b4db036787, type: 3}
   castPoint: {fileID: 606002186337026225}
   maxCastPointDistance: 4
   aimLayerMask:

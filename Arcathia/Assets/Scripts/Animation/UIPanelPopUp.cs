@@ -227,12 +227,7 @@ public class UIPanelPopUp : MonoBehaviour
         }
     }
 
-    // --- EXIT ANIMATIONS ---
-
-    /// <summary>
-    /// Smoothly animates out and turns off the GameObject.
-    /// Called automatically by MainMenuManager when switching panels!
-    /// </summary>
+    
     public void ClosePanel()
     {
         if (gameObject.activeInHierarchy)
@@ -292,7 +287,7 @@ public class UIPanelPopUp : MonoBehaviour
 
         onCloseComplete?.Invoke();
         ResetTransformToDefault();
-        gameObject.SetActive(false); // Turns off cleanly once animation finishes
+        gameObject.SetActive(false); 
         activeAnimRoutine = null;
     }
 

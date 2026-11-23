@@ -29,8 +29,7 @@ public class CustomizableButton : MonoBehaviour, IDragHandler, IBeginDragHandler
 
         if (!editingState)
         {
-            // If you see this spamming the console when the panel is closed, dragging is being blocked successfully.
-            // If you DON'T see this, but the button still moves, another script or layout group is moving it.
+            
             return;
         }
 

@@ -35,7 +35,7 @@ public class PlayerPowerUpHandler : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        // Add listeners so we can print Debug.Logs when states change for ANY player
+        
         isPrismBarrierActive.OnValueChanged += OnPrismBarrierStateChanged;
         isOverchargeActive.OnValueChanged += OnOverchargeStateChanged;
 
@@ -45,12 +45,12 @@ public class PlayerPowerUpHandler : NetworkBehaviour
 
     public override void OnNetworkDespawn()
     {
-        // Always clean up listeners to prevent memory leaks
+        
         isPrismBarrierActive.OnValueChanged -= OnPrismBarrierStateChanged;
         isOverchargeActive.OnValueChanged -= OnOverchargeStateChanged;
     }
 
-    // --- DEBUG LOGS FOR VISUAL EFFECTS ---
+    
 
     private void OnPrismBarrierStateChanged(bool previous, bool current)
     {
@@ -68,7 +68,7 @@ public class PlayerPowerUpHandler : NetworkBehaviour
             Debug.Log($"[PowerUp] OVERCHARGE MATRIX DEACTIVATED for player {NetworkObjectId}. Power normalized.");
     }
 
-    // --- CORE LOGIC ---
+    
 
     public void SetSpellbookUI(SpellbookUI ui) { spellbookUI = ui; }
 
@@ -156,7 +156,7 @@ public class PlayerPowerUpHandler : NetworkBehaviour
         }
     }
 
-    // --- SERVER TIMERS ---
+    
 
     [ServerRpc]
     private void ActivatePrismBarrierServerRpc(bool state)
@@ -169,7 +169,7 @@ public class PlayerPowerUpHandler : NetworkBehaviour
     private IEnumerator PrismBarrierTimer()
     {
         yield return new WaitForSeconds(prismBarrierDuration);
-        isPrismBarrierActive.Value = false; // Turns off automatically
+        isPrismBarrierActive.Value = false; 
     }
 
     [ServerRpc]
@@ -183,7 +183,7 @@ public class PlayerPowerUpHandler : NetworkBehaviour
     private IEnumerator OverchargeTimer()
     {
         yield return new WaitForSeconds(overchargeDuration);
-        isOverchargeActive.Value = false; // Turns off automatically
+        isOverchargeActive.Value = false; 
     }
 
     private void UpdateUI()

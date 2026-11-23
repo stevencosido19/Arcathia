@@ -25,7 +25,7 @@ public class PlayerScore : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        // 1. If we own this player, send our saved local profile to the server
+        
         if (IsOwner)
         {
             string savedName = GameDataManager.Instance != null ? GameDataManager.Instance.PlayerName : "Player";
@@ -34,7 +34,7 @@ public class PlayerScore : NetworkBehaviour
             SetProfileServerRpc(savedName, savedAvatar);
         }
 
-        // 2. Listen for profile changes from other players to refresh UI
+        
         avatarIndex.OnValueChanged += OnProfileDataChanged;
         playerName.OnValueChanged += OnProfileDataChanged;
 

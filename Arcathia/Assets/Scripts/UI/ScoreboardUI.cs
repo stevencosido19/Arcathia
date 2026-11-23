@@ -32,13 +32,13 @@ public class ScoreboardUI : MonoBehaviour
             return;
         }
 
-        // Clear previous UI slots
+        
         for (int i = container.childCount - 1; i >= 0; i--)
         {
             Destroy(container.GetChild(i).gameObject);
         }
 
-        // Find all active PlayerScore components
+        
         PlayerScore[] players = FindObjectsByType<PlayerScore>(FindObjectsSortMode.None);
 
         foreach (PlayerScore player in players)

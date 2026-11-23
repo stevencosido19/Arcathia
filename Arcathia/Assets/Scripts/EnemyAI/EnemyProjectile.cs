@@ -19,7 +19,7 @@ public class EnemyProjectile : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        // Move forward on server
+        
         transform.position += transform.forward * speed * Time.deltaTime;
 
         if (Time.time >= spawnTime + lifeTime)
@@ -32,19 +32,19 @@ public class EnemyProjectile : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        // 1. Ignore hitting other enemies (checks script directly, no tag needed!)
+        
         if (other.GetComponentInParent<ShootingEnemyAI>() != null)
         {
             return;
         }
 
-        // 2. Check if hit the player
+        
         PlayerPowerUpHandler powerUpHandler = other.GetComponentInParent<PlayerPowerUpHandler>();
         PlayerController player = other.GetComponentInParent<PlayerController>();
 
         if (player != null)
         {
-            // Check if player's Prism Barrier shield is active
+           
             if (powerUpHandler != null && powerUpHandler.isPrismBarrierActive.Value)
             {
                 Debug.Log("[EnemyProjectile] Shot was BLOCKED by Prism Barrier!");
@@ -52,15 +52,14 @@ public class EnemyProjectile : NetworkBehaviour
             else
             {
                 Debug.Log($"[EnemyProjectile] Player hit for {damage} damage!");
-                // Hook to your player's damage method here:
-                // player.TakeDamage(damage);
+                
             }
 
             DespawnProjectile();
             return;
         }
 
-        // 3. Despawn if it collides with walls / terrain (non-trigger colliders)
+        
         if (!other.isTrigger)
         {
             DespawnProjectile();

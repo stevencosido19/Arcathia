@@ -33,7 +33,7 @@ public class PowerUpSpawner : NetworkBehaviour
 
     private void Awake()
     {
-        // Safety check to warn if NetworkObject component is missing on this GameObject
+        
         if (GetComponent<NetworkObject>() == null)
         {
             Debug.LogError($"[PowerUpSpawner] '{gameObject.name}' is MISSING a NetworkObject component! OnNetworkSpawn() will NEVER fire.");
@@ -74,7 +74,7 @@ public class PowerUpSpawner : NetworkBehaviour
 
         if (activePowerUps.Count >= maxActivePowerUps)
         {
-            // Already at capacity
+            
             return;
         }
 
@@ -95,17 +95,17 @@ public class PowerUpSpawner : NetworkBehaviour
 
         if (targetPoint == null)
         {
-            // All spawn spots are occupied by existing power-ups
+            
             return;
         }
 
-        // 1. Instantiate on Server
+        
         GameObject spawned = Instantiate(selectedPrefab, targetPoint.position, targetPoint.rotation);
         NetworkObject netObj = spawned.GetComponent<NetworkObject>();
 
         if (netObj != null)
         {
-            // 2. Spawn across Netcode
+            
             netObj.Spawn();
             activePowerUps.Add(spawned);
             Debug.Log($"<color=cyan>[PowerUpSpawner] Successfully spawned '{selectedPrefab.name}' at {targetPoint.name}. Active count: {activePowerUps.Count}</color>");

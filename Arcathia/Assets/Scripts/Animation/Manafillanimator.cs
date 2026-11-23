@@ -4,16 +4,7 @@ using UnityEngine.UI;
 
 public enum ManaElement { Fire, Water, Lightning }
 
-/// <summary>
-/// Put this on each mana fill Image (Image Type = Filled). Call SetTarget(current / max) whenever ammo changes.
-/// Each element behaves like itself:
-///   WATER     - the fill SLOSHES: springs past the target and settles with wobble, gentle bobbing, cool shimmer.
-///   FIRE      - the fill FLARES UP fast, then flickers (Perlin) between orange and hot yellow, flame-licks in height.
-///   LIGHTNING - the fill ZAPS up in snappy random steps, crackles with white-blue flashes and random arc flickers.
-/// All three get a flash + scale pop on gain, and a smaller flash when mana is spent.
-/// Optional: UI/ElementalMana shader adds surface effects (ripples, flame distortion, crackle lines).
-/// Uses unscaled time, so it animates even when the game is paused.
-/// </summary>
+
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Image))]
 public class ManaFillAnimator : MonoBehaviour
@@ -66,7 +57,7 @@ public class ManaFillAnimator : MonoBehaviour
     public UnityEvent onGain;
     public UnityEvent onSpend;
 
-    // ---- state ----
+    
     Image fill;
     Material mat;
     Color baseColor;
@@ -74,12 +65,12 @@ public class ManaFillAnimator : MonoBehaviour
     float flash, arcFlash, pop, popVel;
     float time;
     bool idleApplied;
-    bool targetAssigned;   // SetTarget may be called BEFORE Awake if the object started inactive
+    bool targetAssigned;   
 
-    // lightning
+   
     float stepTimer, arcTimer, stepFlicker = 1f;
 
-    // scale pop bookkeeping (robust to the HUD layout editor changing the scale)
+    
     Vector3 appliedScaleFactor = Vector3.one;
 
     static readonly int FlashId = Shader.PropertyToID("_Flash");
@@ -100,7 +91,7 @@ public class ManaFillAnimator : MonoBehaviour
         baseColor = fill.color;
         arcTimer = Random.Range(lightningArcInterval.x, lightningArcInterval.y);
 
-        // an invisible (alpha 0) base colour would keep the fill invisible forever
+        
         if (baseColor.a < 0.01f)
         {
             Debug.LogWarning("[ManaFillAnimator] Image colour alpha was 0, using 1 so the fill is visible.", this);
@@ -126,8 +117,7 @@ public class ManaFillAnimator : MonoBehaviour
             fill.material = mat;
         }
 
-        // players start with no mana: start empty instead of the Image's default Fill Amount of 1.
-        // If SetTarget() already ran before Awake (object started inactive), keep that target and animate to it.
+        
         value = 0f;
         vel = 0f;
         if (!targetAssigned) target = 0f;
@@ -145,9 +135,7 @@ public class ManaFillAnimator : MonoBehaviour
         ApplyScale(Vector3.one);
     }
 
-    // ============================================================ API
-
-    /// <summary>Set the new fill fraction (current ammo / max ammo). Call whenever ammo changes.</summary>
+    
     public void SetTarget(float fill01, bool instant = false)
     {
         fill01 = Mathf.Clamp01(fill01);
@@ -190,7 +178,7 @@ public class ManaFillAnimator : MonoBehaviour
     [ContextMenu("Test: -25%")]
     void TestSpend() => SetTarget(target - 0.25f);
 
-    // ======================================================== feedback
+    
 
     void OnGain()
     {
@@ -207,7 +195,7 @@ public class ManaFillAnimator : MonoBehaviour
         onSpend?.Invoke();
     }
 
-    // ========================================================= update
+    
 
     void Update()
     {
@@ -217,7 +205,7 @@ public class ManaFillAnimator : MonoBehaviour
 
         bool shaderActive = mat != null;
 
-        // random idle arc flashes for lightning (only while there is visible mana)
+        
         if (element == ManaElement.Lightning && value > 0.001f)
         {
             arcTimer -= dt;
@@ -228,8 +216,7 @@ public class ManaFillAnimator : MonoBehaviour
             }
         }
 
-        // ---- IDLE EARLY-OUT: nothing changing -> touch nothing -> the Canvas is not rebuilt.
-        // With the shader, idle motion (ripples / flames / crackle) is done on the GPU for free.
+        
         bool settled = Mathf.Abs(target - value) < 0.0005f && Mathf.Abs(vel) < 0.001f
                        && flash <= 0f && arcFlash <= 0f && Mathf.Abs(pop) < 0.001f;
         bool needsAmbient = !shaderActive && animateWhileIdle && value > 0.001f;
@@ -258,11 +245,11 @@ public class ManaFillAnimator : MonoBehaviour
 
             case ManaElement.Fire:
                 value = Mathf.SmoothDamp(value, target, ref vel, Mathf.Max(0.01f, fireRiseTime), Mathf.Infinity, dt);
-                if (!shaderActive)   // with the shader the flicker is done on the GPU
+                if (!shaderActive)   
                 {
-                    float f = (Mathf.PerlinNoise(time * fireFlickerSpeed, 0.37f) - 0.5f) * 2f;   // -1..1
+                    float f = (Mathf.PerlinNoise(time * fireFlickerSpeed, 0.37f) - 0.5f) * 2f;   
                     brightness = 1f + f * fireFlickerAmount;
-                    scaleY = 1f + f * 0.02f;                                                      // flame lick
+                    scaleY = 1f + f * 0.02f;                                                      
                 }
                 break;
 
@@ -272,11 +259,11 @@ public class ManaFillAnimator : MonoBehaviour
                 break;
         }
 
-        // flashes decay
+        
         flash = Mathf.MoveTowards(flash, 0f, flashDecay * dt);
         arcFlash = Mathf.MoveTowards(arcFlash, 0f, 14f * dt);
 
-        // scale pop spring-back
+        
         pop = Mathf.SmoothDamp(pop, 0f, ref popVel, Mathf.Max(0.01f, popReturnTime), Mathf.Infinity, dt);
 
         ApplyVisual(brightness, scaleY);
@@ -284,7 +271,7 @@ public class ManaFillAnimator : MonoBehaviour
 
     void StepWater(float dt)
     {
-        // under-damped spring: overshoots the target and wobbles into place = sloshing water
+        
         float w = 2f * Mathf.PI * waterFrequency;
         float k = w * w;
         float c = 2f * waterDamping * w;
@@ -301,7 +288,7 @@ public class ManaFillAnimator : MonoBehaviour
 
     void StepLightning(float dt, out float brightness)
     {
-        // snappy random steps toward the target
+        
         stepTimer += dt;
         float stepInterval = 1f / Mathf.Max(1f, lightningStepsPerSecond);
         while (stepTimer >= stepInterval)
@@ -315,7 +302,7 @@ public class ManaFillAnimator : MonoBehaviour
         brightness = stepFlicker;
     }
 
-    // ========================================================= visuals
+    
 
     void ApplyVisual(float brightness, float scaleY)
     {
@@ -327,7 +314,7 @@ public class ManaFillAnimator : MonoBehaviour
         Color c = new Color(baseColor.r * brightness, baseColor.g * brightness, baseColor.b * brightness, baseColor.a);
         if (mat != null)
         {
-            mat.SetFloat(FlashId, f);          // shader adds the flash on top of the sprite
+            mat.SetFloat(FlashId, f);          
         }
         else
         {
@@ -336,7 +323,7 @@ public class ManaFillAnimator : MonoBehaviour
         }
         fill.color = c;
 
-        // scale pop (skipped while the HUD layout editor is active)
+        
         if (useScalePop && !HUDLayoutManager.IsLayoutEditing)
         {
             float p = pop * popAmount;
@@ -350,14 +337,14 @@ public class ManaFillAnimator : MonoBehaviour
 
     float WaterDisplay()
     {
-        if (mat != null) return value;   // shader already ripples the surface for free
+        if (mat != null) return value;   
 
-        // gentle bobbing, faded out near empty / full so it never fights the real value
+        
         float edge = Mathf.Clamp01(target * 8f) * Mathf.Clamp01((1f - target) * 8f);
         return value + Mathf.Sin(time * waterBobSpeed) * waterBobAmount * edge;
     }
 
-    // multiply the current scale by 'factor' after undoing last frame's factor
+    
     void ApplyScale(Vector3 factor)
     {
         if (factor == appliedScaleFactor) return;

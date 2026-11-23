@@ -16,7 +16,7 @@ public class NetworkObjectPool : NetworkBehaviour
     [Header("Pool Configurations")]
     public List<PoolConfig> pooledPrefabs = new List<PoolConfig>();
 
-    // Map prefab -> queue of inactive NetworkObjects
+    
     private readonly Dictionary<GameObject, Queue<NetworkObject>> poolDictionary = new Dictionary<GameObject, Queue<NetworkObject>>();
 
     private void Awake()
@@ -47,7 +47,7 @@ public class NetworkObjectPool : NetworkBehaviour
                 poolDictionary[config.prefab] = new Queue<NetworkObject>();
             }
 
-            // Pre-allocate instances in memory on server start
+            
             for (int i = 0; i < config.prewarmCount; i++)
             {
                 NetworkObject netObj = CreateNewInstance(config.prefab);
@@ -65,9 +65,7 @@ public class NetworkObjectPool : NetworkBehaviour
         return netObj;
     }
 
-    /// <summary>
-    /// Fetches an available pooled NetworkObject for spawning on the server.
-    /// </summary>
+    
     public NetworkObject GetNetworkObject(GameObject prefab, Vector3 position, Quaternion rotation)
     {
         if (!IsServer)
@@ -91,20 +89,18 @@ public class NetworkObjectPool : NetworkBehaviour
         }
         else
         {
-            // STRICT POOL CAP: Return null if pool capacity is exhausted
+            
             Debug.LogWarning($"[NetworkObjectPool] Pool limit reached for {prefab.name}! Waiting for projectiles to despawn.");
             return null;
         }
     }
 
-    /// <summary>
-    /// Returns an unspawned NetworkObject back to the pool queue on the server.
-    /// </summary>
+    
     public void ReturnNetworkObject(NetworkObject netObj, GameObject prefab)
     {
         if (!IsServer) return;
 
-        // Deactivate object without reparenting to prevent Netcode errors
+        
         netObj.gameObject.SetActive(false);
 
         if (poolDictionary.TryGetValue(prefab, out var queue))

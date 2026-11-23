@@ -14,7 +14,7 @@ public class MainMenuProfileUI : MonoBehaviour
 
     private void Start()
     {
-        // Load initial values from GameDataManager
+        
         if (GameDataManager.Instance != null)
         {
             currentAvatarIndex = GameDataManager.Instance.SelectedAvatarIndex;

@@ -56,7 +56,7 @@ public class PlayerHealth : NetworkBehaviour
     {
         if (!IsServer || isDead.Value) return;
 
-        // Check Prism Barrier shield
+        
         if (powerUpHandler != null && powerUpHandler.isPrismBarrierActive.Value)
         {
             powerUpHandler.isPrismBarrierActive.Value = false;
@@ -68,7 +68,7 @@ public class PlayerHealth : NetworkBehaviour
         string attackerName = attacker != null ? attacker.name : "Environment/Self";
         Debug.Log($"[PlayerHealth] {gameObject.name} took {damage} damage from {attackerName}. Current HP: {currentHealth.Value}");
 
-        // If player took damage and survived, play hit reaction across network
+        
         if (currentHealth.Value > 0)
         {
             PlayDamageAnimationClientRpc();

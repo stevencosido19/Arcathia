@@ -20,7 +20,7 @@ public class InGameHUDApplier : MonoBehaviour
     private string savePath;
     private Canvas rootCanvas;
 
-    // Stores default positions captured on Awake so Reset works without reloading scenes!
+    
     private readonly Dictionary<string, Vector3> defaultWorldPositions = new Dictionary<string, Vector3>();
 
     private void Awake()
@@ -56,9 +56,7 @@ public class InGameHUDApplier : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Reads the saved layout and positions the real in-game buttons instantly.
-    /// </summary>
+   
     public void ApplyLayout()
     {
         if (!File.Exists(savePath))
@@ -93,8 +91,7 @@ public class InGameHUDApplier : MonoBehaviour
                 {
                     RectTransform rt = binding.realButtonTransform;
 
-                    // Bulletproof World-Space Screen Mapping:
-                    // Calculates the exact point on the main canvas regardless of what parent panels the button is in!
+                    
                     float localX = Mathf.Lerp(canvasRect.rect.xMin, canvasRect.rect.xMax, item.normX);
                     float localY = Mathf.Lerp(canvasRect.rect.yMin, canvasRect.rect.yMax, item.normY);
                     Vector3 targetWorldPoint = canvasRect.TransformPoint(new Vector3(localX, localY, 0f));
@@ -118,9 +115,7 @@ public class InGameHUDApplier : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Snaps all real in-game buttons back to their original positions.
-    /// </summary>
+    
     public void ResetToDefaultLayout()
     {
         int resetCount = 0;

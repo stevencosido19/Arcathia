@@ -9,8 +9,6 @@ public class OwnerNetworkAnimator : NetworkAnimator
     {
         ResolveAnimator();
 
-        // Netcode reads layerCount / parameters from Animator in here, so the Animator
-        // must already be a live, active one with a controller.
         base.Awake();
     }
 
@@ -21,12 +19,7 @@ public class OwnerNetworkAnimator : NetworkAnimator
 
     private void ResolveAnimator()
     {
-        // NetworkAnimator.Animator must point at an Animator that lives on THIS spawned instance,
-        // is active, and has a controller. Otherwise base.Awake() logs
-        // "Animator is not playing an AnimatorController". Typical culprits:
-        //  - the field points at an Animator on an inactive child (e.g. a hidden role model)
-        //  - the field points at an Animator inside a prefab ASSET instead of the spawned clone
-        //  - the referenced Animator has no controller assigned
+        
         if (!IsUsable(Animator))
         {
             Animator replacement = FindUsableAnimator();
@@ -36,7 +29,7 @@ public class OwnerNetworkAnimator : NetworkAnimator
                     $"[OwnerNetworkAnimator] '{name}': NetworkAnimator.Animator was {Describe(Animator)}; " +
                     $"switching to {Describe(replacement)}. Fix the reference on the prefab to silence this.", this);
 
-                // The old code found an Animator but never assigned it back, so Netcode kept using the bad one.
+                
                 Animator = replacement;
             }
             else
@@ -45,7 +38,7 @@ public class OwnerNetworkAnimator : NetworkAnimator
             }
         }
 
-        // Make sure the Animator has built its graph before Netcode queries it.
+        
         if (Animator != null && Animator.runtimeAnimatorController != null)
         {
             Animator.Rebind();
@@ -56,8 +49,8 @@ public class OwnerNetworkAnimator : NetworkAnimator
     private static bool IsUsable(Animator a)
     {
         return a != null
-               && a.gameObject.scene.IsValid()          // false for references into prefab assets
-               && a.gameObject.activeInHierarchy        // false for animators on inactive children
+               && a.gameObject.scene.IsValid()          
+               && a.gameObject.activeInHierarchy        
                && a.runtimeAnimatorController != null;
     }
 

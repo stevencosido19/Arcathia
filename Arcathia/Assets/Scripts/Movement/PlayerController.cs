@@ -16,18 +16,26 @@ public class PlayerController : NetworkBehaviour
     public float fallGravityMultiplier = 2.2f;
     public float maxFallSpeed = 45.0f;
 
-    [Tooltip("Seconds after a jump during which the ground check is ignored. " +
-             "Stops IsGrounded flickering true right after takeoff, which fires Land and Jump back to back.")]
+    [Tooltip("Seconds after a jump during which the ground check is ignored.")]
     public float jumpGroundIgnoreTime = 0.1f;
+
+    [Header("Knockback & Stun Settings")]
+    [Tooltip("How fast the horizontal knockback decays over time.")]
+    public float knockbackDamping = 8.0f;
 
     private CharacterController controller;
     private MobileTouchInput touchInputHandler;
     private Animator animator;
 
     private Vector3 verticalVelocity;
+    private Vector3 knockbackVelocity;
+    private float stunTimer = 0f;
+
     private bool isGrounded;
     private bool wasGrounded;
     private float jumpGroundIgnoreTimer;
+
+    public bool IsStunned => stunTimer > 0f;
 
     // Animator Hashes
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
@@ -64,56 +72,64 @@ public class PlayerController : NetworkBehaviour
     {
         if (jumpGroundIgnoreTimer > 0f) jumpGroundIgnoreTimer -= Time.deltaTime;
 
-        // 1. Gather Inputs
+        // Process Stun Timer
+        if (stunTimer > 0f)
+        {
+            stunTimer -= Time.deltaTime;
+        }
+
         float moveX = 0f;
         float moveZ = 0f;
+        Vector3 horizontalMove = Vector3.zero;
+        float inputMagnitude = 0f;
 
-        if (Keyboard.current != null)
+        // Only read inputs if NOT stunned
+        if (!IsStunned)
         {
-            if (Keyboard.current.wKey.isPressed) moveZ += 1f;
-            if (Keyboard.current.sKey.isPressed) moveZ -= 1f;
-            if (Keyboard.current.dKey.isPressed) moveX += 1f;
-            if (Keyboard.current.aKey.isPressed) moveX -= 1f;
-
-            if (Keyboard.current.spaceKey.wasPressedThisFrame && isGrounded)
+            if (Keyboard.current != null)
             {
-                TriggerJump();
+                if (Keyboard.current.wKey.isPressed) moveZ += 1f;
+                if (Keyboard.current.sKey.isPressed) moveZ -= 1f;
+                if (Keyboard.current.dKey.isPressed) moveX += 1f;
+                if (Keyboard.current.aKey.isPressed) moveX -= 1f;
+
+                if (Keyboard.current.spaceKey.wasPressedThisFrame && isGrounded)
+                {
+                    TriggerJump();
+                }
+            }
+
+            if (touchInputHandler != null)
+            {
+                moveX += touchInputHandler.MoveInput.x;
+                moveZ += touchInputHandler.MoveInput.y;
+            }
+
+            Vector2 combinedInput = Vector2.ClampMagnitude(new Vector2(moveX, moveZ), 1f);
+            inputMagnitude = combinedInput.magnitude;
+
+            if (inputMagnitude > 0.05f && Camera.main != null)
+            {
+                Transform camTransform = Camera.main.transform;
+                Vector3 camForward = camTransform.forward;
+                Vector3 camRight = camTransform.right;
+                camForward.y = 0f;
+                camRight.y = 0f;
+                camForward.Normalize();
+                camRight.Normalize();
+
+                Vector3 moveDir = (camForward * combinedInput.y + camRight * combinedInput.x).normalized;
+                horizontalMove = moveDir * moveSpeed;
+
+                Quaternion targetRotation = Quaternion.LookRotation(moveDir);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
             }
         }
 
-        if (touchInputHandler != null)
-        {
-            moveX += touchInputHandler.MoveInput.x;
-            moveZ += touchInputHandler.MoveInput.y;
-        }
-
-        Vector2 combinedInput = Vector2.ClampMagnitude(new Vector2(moveX, moveZ), 1f);
-        Vector3 horizontalMove = Vector3.zero;
-
-        // Deadzone check (prevents sliding while idling)
-        float inputMagnitude = combinedInput.magnitude;
-
-        if (inputMagnitude > 0.05f && Camera.main != null)
-        {
-            Transform camTransform = Camera.main.transform;
-            Vector3 camForward = camTransform.forward;
-            Vector3 camRight = camTransform.right;
-            camForward.y = 0f;
-            camRight.y = 0f;
-            camForward.Normalize();
-            camRight.Normalize();
-
-            Vector3 moveDir = (camForward * combinedInput.y + camRight * combinedInput.x).normalized;
-            horizontalMove = moveDir * moveSpeed;
-
-            Quaternion targetRotation = Quaternion.LookRotation(moveDir);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-        }
-
-        // 2. Dynamic Gravity
+        // Gravity calculations
         if (isGrounded && verticalVelocity.y < 0)
         {
-            verticalVelocity.y = -3.0f; // Firm ground stick
+            verticalVelocity.y = -3.0f;
         }
         else if (verticalVelocity.y > 0)
         {
@@ -126,28 +142,32 @@ public class PlayerController : NetworkBehaviour
 
         verticalVelocity.y = Mathf.Max(verticalVelocity.y, -maxFallSpeed);
 
-        // 3. Move Character
-        Vector3 totalMovement = horizontalMove + verticalVelocity;
+        // Knockback Damping
+        if (knockbackVelocity.sqrMagnitude > 0.001f)
+        {
+            knockbackVelocity = Vector3.Lerp(knockbackVelocity, Vector3.zero, knockbackDamping * Time.deltaTime);
+        }
+        else
+        {
+            knockbackVelocity = Vector3.zero;
+        }
+
+        // Combine all velocity vectors
+        Vector3 totalMovement = horizontalMove + verticalVelocity + knockbackVelocity;
         controller.Move(totalMovement * Time.deltaTime);
 
-        // 4. Update isGrounded AFTER controller.Move().
-        // Ignore the ground check for a moment after a jump so it can't flicker back to true during takeoff.
         isGrounded = controller.isGrounded && jumpGroundIgnoreTimer <= 0f;
 
-        // 5. On the frame we land, throw away any Jump trigger that was never consumed.
-        // A trigger stays set until some transition uses it, so when you spam jump, leftover triggers
-        // replay the jump-start animation late. That is the "animation delay".
         if (animator != null && isGrounded && !wasGrounded)
         {
             animator.ResetTrigger(JumpHash);
         }
         wasGrounded = isGrounded;
 
-        // 6. Update Animator Parameters
+        // Animations
         if (animator != null)
         {
-            // Snap to 0 immediately when input stops to prevent delayed running
-            if (inputMagnitude < 0.05f)
+            if (inputMagnitude < 0.05f || IsStunned)
             {
                 animator.SetFloat(SpeedHash, 0f);
             }
@@ -163,22 +183,56 @@ public class PlayerController : NetworkBehaviour
     public void TriggerJump()
     {
         if (!IsOwner) return;
+        if (IsStunned) return; // Cannot jump while stunned
         if (HUDLayoutManager.IsLayoutEditing) return;
 
         if (isGrounded)
         {
             verticalVelocity.y = jumpSpeed;
-            isGrounded = false; // Immediately flag as in-air
+            isGrounded = false;
             wasGrounded = false;
             jumpGroundIgnoreTimer = jumpGroundIgnoreTime;
 
             if (animator != null)
             {
                 animator.SetBool(IsGroundedHash, false);
-
-                // Clear first so triggers never stack up, then fire exactly one.
                 animator.ResetTrigger(JumpHash);
                 animator.SetTrigger(JumpHash);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Server entry point called by the projectile when hit.
+    /// </summary>
+    public void ApplyKnockbackAndStun(Vector3 force, float duration)
+    {
+        if (!IsServer) return;
+        ApplyKnockbackAndStunClientRpc(force, duration);
+    }
+
+    [ClientRpc]
+    private void ApplyKnockbackAndStunClientRpc(Vector3 force, float duration)
+    {
+        // Only the owner of this character executes the movement updates
+        if (!IsOwner) return;
+
+        stunTimer = Mathf.Max(stunTimer, duration);
+
+        // Apply horizontal knockback
+        knockbackVelocity = new Vector3(force.x, 0f, force.z);
+
+        // Apply vertical lift (if any) directly into vertical velocity
+        if (force.y > 0f)
+        {
+            verticalVelocity.y = force.y;
+            isGrounded = false;
+            wasGrounded = false;
+            jumpGroundIgnoreTimer = jumpGroundIgnoreTime;
+
+            if (animator != null)
+            {
+                animator.SetBool(IsGroundedHash, false);
             }
         }
     }
@@ -186,5 +240,7 @@ public class PlayerController : NetworkBehaviour
     public void ResetVelocity()
     {
         verticalVelocity = Vector3.zero;
+        knockbackVelocity = Vector3.zero;
+        stunTimer = 0f;
     }
 }

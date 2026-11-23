@@ -35,7 +35,7 @@ public class ShopUIManager : MonoBehaviour
         RefreshPreviewModel();
         PopulateGrid(currentCategory);
 
-        // Link back button to the loading screen transition
+        
         if (backToMenuButton != null)
         {
             backToMenuButton.onClick.AddListener(OnBackToMenuClicked);
@@ -49,11 +49,11 @@ public class ShopUIManager : MonoBehaviour
 
     private void OnBackToMenuClicked()
     {
-        // Smoothly fades through the LoadingScreen back to MainMenu
+        
         LoadingScreen.Load("MainMenu");
     }
 
-    // --- NEW MOBILE PROTOTYPE METHODS ---
+    
     public void AddPrototypeMoney()
     {
         saveData.currency += 500;
@@ -70,7 +70,7 @@ public class ShopUIManager : MonoBehaviour
         UpdateActionButtonState();
         RefreshPreviewModel();
     }
-    // ------------------------------------
+    
 
     public void SelectCategory(int categoryIndex)
     {

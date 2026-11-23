@@ -17,10 +17,10 @@ public class PlayerMagicNetwork : NetworkBehaviour
     public float maxCastPointDistance = 4f;
 
     [Header("Aim Settings")]
-    public LayerMask aimLayerMask = ~0; // Layers the crosshair raycast can hit
-    public float maxAimDistance = 100f;  // Fallback distance if aiming at the sky
-    public Vector2 crosshairViewportPoint = new Vector2(0.5f, 0.5f); // Crosshair position on screen (0.5, 0.5 = exact center)
-    public bool debugAim = false;        // Draws the aim line in the Scene view and logs aim problems
+    public LayerMask aimLayerMask = ~0; 
+    public float maxAimDistance = 100f;  
+    public Vector2 crosshairViewportPoint = new Vector2(0.5f, 0.5f); 
+    public bool debugAim = false;        
 
     [Header("Ammo Settings")]
     public int maxAmmo = 3;
@@ -47,10 +47,10 @@ public class PlayerMagicNetwork : NetworkBehaviour
     private PlayerPowerUpHandler powerUpHandler;
     private SpellbookUI spellbookUI;
     private Camera mainCamera;
-    private Animator playerAnimator; // Reference to character Animator
+    private Animator playerAnimator; 
     private bool warnedNoCastPoint;
 
-    // Reused buffer so the aim raycast doesn't allocate every shot
+    
     private static readonly RaycastHit[] aimHits = new RaycastHit[8];
 
     private bool IsMatchOver()
@@ -61,7 +61,7 @@ public class PlayerMagicNetwork : NetworkBehaviour
     private void Awake()
     {
         powerUpHandler = GetComponent<PlayerPowerUpHandler>();
-        // Finds the Animator on this GameObject or any child (e.g. child model rig)
+        
         playerAnimator = GetComponentInChildren<Animator>();
     }
 
@@ -70,7 +70,7 @@ public class PlayerMagicNetwork : NetworkBehaviour
         if (IsOwner)
         {
             spellbookUI = FindFirstObjectByType<SpellbookUI>();
-            mainCamera = Camera.main; // Cache main camera for local player aim raycasts
+            mainCamera = Camera.main; 
         }
     }
 
@@ -90,7 +90,7 @@ public class PlayerMagicNetwork : NetworkBehaviour
         };
     }
 
-    // Optional: call this from your quiz script when a question is answered correctly
+    
     public void AddCorrectAnswerAmmo(SpellType type)
     {
         AddExactSpellAmmo(type, GetCustomAmmoGain(type));
@@ -149,19 +149,19 @@ public class PlayerMagicNetwork : NetworkBehaviour
 
         DeductAmmo(type);
 
-        // Play attack animation instantly on local player
+        
         if (playerAnimator != null)
         {
             playerAnimator.SetTrigger("CastSpell");
         }
 
-        // 1. Spawn origin: the Cast Point (hand / staff tip), not the body
+        
         Vector3 spawnPosition = GetSpawnPosition();
 
-        // 2. Calculate rotation facing crosshair target point in 3D world
+        
         Quaternion aimRotation = GetAimRotation(spawnPosition);
 
-        // 3. Request Server to spawn spell projectile with crosshair rotation
+        
         CastSpellServerRpc(type, spawnPosition, aimRotation);
     }
 
@@ -270,7 +270,7 @@ public class PlayerMagicNetwork : NetworkBehaviour
     {
         if (IsMatchOver()) return;
 
-        // Tell other clients to play the casting animation
+       
         PlayCastSpellAnimationClientRpc();
 
         float maxDist = Mathf.Max(0.5f, maxCastPointDistance);
@@ -334,7 +334,7 @@ public class PlayerMagicNetwork : NetworkBehaviour
     [ClientRpc]
     private void PlayCastSpellAnimationClientRpc()
     {
-        // Don't replay on the owner (already played locally for zero latency)
+        
         if (!IsOwner && playerAnimator != null)
         {
             playerAnimator.SetTrigger("CastSpell");

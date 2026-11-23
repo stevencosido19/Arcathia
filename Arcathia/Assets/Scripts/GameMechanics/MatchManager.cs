@@ -6,7 +6,7 @@ public class MatchManager : NetworkBehaviour
     public static MatchManager Instance { get; private set; }
 
     [Header("Match Settings")]
-    public float matchDuration = 180f; // 3 Minutes default
+    public float matchDuration = 180f; 
 
     [Header("Networked Match States")]
     public NetworkVariable<float> timeRemaining = new NetworkVariable<float>(

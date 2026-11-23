@@ -42,7 +42,7 @@ public class CampaignVictoryManager : NetworkBehaviour
         if (nextStageButton != null) nextStageButton.onClick.AddListener(OnNextStagePressed);
         if (mainMenuButton != null) mainMenuButton.onClick.AddListener(OnMainMenuPressed);
 
-        // Try to bind player score on Start, and in Update if it wasn't found immediately
+       
         FindAndBindPlayerScore();
     }
 
@@ -56,10 +56,9 @@ public class CampaignVictoryManager : NetworkBehaviour
 
     private void FindAndBindPlayerScore()
     {
-        // Find the local player's score component.
-        // In Campaign (Host mode), there's only one local player.
+        
         PlayerScore player = Object.FindFirstObjectByType<PlayerScore>();
-        if (player != null && player.IsOwner) // Ensure we bind to OUR player's score
+        if (player != null && player.IsOwner) 
         {
             boundPlayerScore = player;
             boundPlayerScore.score.OnValueChanged += CheckScoreForVictory;

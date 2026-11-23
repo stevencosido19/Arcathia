@@ -44,7 +44,8 @@ Material:
     m_Floats:
     - _QueueControl: 0
     - _QueueOffset: 0
-    - _Rim_Threshold: 0.5
+    - _Rim_Threshold: 0.9
+    - _Roughness: 0.8
     - _Shadow_Softness: 0.28
     - _Shadow_Threshold: 0.5
     - _XRMotionVectorsPass: 1
@@ -52,6 +53,7 @@ Material:
     - _Base_Color: {r: 0.41509432, g: 0.41509432, b: 0.41509432, a: 1}
     - _Rim_Color: {r: 1, g: 1, b: 1, a: 1}
     - _Shadow_Color: {r: 0.254717, g: 0.24150054, b: 0.24150054, a: 1}
+    - _Specular_Color: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &6374059339632454426

@@ -32,7 +32,7 @@ public class HoverButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerEx
         rectTransform = GetComponent<RectTransform>();
         originalScale = rectTransform.localScale;
         originalPosition = rectTransform.anchoredPosition;
-        noiseSeed = Random.value * 100f; // Unique seed so multiple buttons don't shake identically
+        noiseSeed = Random.value * 100f; 
     }
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -81,41 +81,41 @@ public class HoverButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerEx
         {
             if (isHovered)
             {
-                // 1. Smoothly Zoom In
+                
                 rectTransform.localScale = Vector3.Lerp(
                     rectTransform.localScale,
                     targetScale,
                     Time.unscaledDeltaTime * scaleSpeed
                 );
 
-                // 2. Smooth Perlin Noise Shake (vibration effect without GC allocations)
+                
                 float noiseX = (Mathf.PerlinNoise(Time.unscaledTime * shakeSpeed, noiseSeed) - 0.5f) * 2f;
                 float noiseY = (Mathf.PerlinNoise(noiseSeed, Time.unscaledTime * shakeSpeed) - 0.5f) * 2f;
                 rectTransform.anchoredPosition = originalPosition + new Vector2(noiseX, noiseY) * shakeStrength;
             }
             else
             {
-                // 1. Smoothly Zoom Out back to default scale
+                
                 rectTransform.localScale = Vector3.Lerp(
                     rectTransform.localScale,
                     originalScale,
                     Time.unscaledDeltaTime * scaleSpeed
                 );
 
-                // 2. Smoothly return position back to default anchor
+                
                 rectTransform.anchoredPosition = Vector2.Lerp(
                     rectTransform.anchoredPosition,
                     originalPosition,
                     Time.unscaledDeltaTime * scaleSpeed
                 );
 
-                // 3. Stop coroutine once it's back to default to save CPU
+                
                 if (Vector3.SqrMagnitude(rectTransform.localScale - originalScale) < 0.0001f &&
                     Vector2.SqrMagnitude(rectTransform.anchoredPosition - originalPosition) < 0.01f)
                 {
                     ResetToDefaults();
                     animationRoutine = null;
-                    yield break; // Completely shuts down until the next hover!
+                    yield break; 
                 }
             }
 

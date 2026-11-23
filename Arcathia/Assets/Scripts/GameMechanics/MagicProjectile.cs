@@ -8,6 +8,11 @@ public class MagicProjectile : NetworkBehaviour
     public float lifeTime = 4f;
     public int damage = 20;
 
+    [Header("Knockback & Stun")]
+    public float knockbackForce = 12f;
+    public float knockbackUpwardForce = 4f;
+    public float stunDuration = 0.5f;
+
     [Header("Player/Enemy Hitbox Settings")]
     [Tooltip("Optional child Transform to set the exact hitbox location. Leave empty to use Damage Hitbox Offset.")]
     public Transform damageHitboxPoint;
@@ -25,7 +30,6 @@ public class MagicProjectile : NetworkBehaviour
     private Rigidbody rb;
     private bool hasHit = false;
 
-    // Reused buffer so FixedUpdate allocates zero memory
     private static readonly Collider[] damageHits = new Collider[16];
 
     private void Awake()
@@ -52,7 +56,7 @@ public class MagicProjectile : NetworkBehaviour
         if (rb != null)
         {
             rb.angularVelocity = Vector3.zero;
-            rb.linearVelocity = transform.forward * speed; // rb.velocity on older Unity versions
+            rb.linearVelocity = transform.forward * speed;
         }
 
         if (IsServer)
@@ -72,7 +76,6 @@ public class MagicProjectile : NetworkBehaviour
         return transform.TransformPoint(damageHitboxOffset);
     }
 
-    // BIG DAMAGE CHECK: Only checks for Players & Enemies at the hitbox location
     private void FixedUpdate()
     {
         if (!IsServer || hasHit) return;
@@ -98,16 +101,12 @@ public class MagicProjectile : NetworkBehaviour
         }
     }
 
-    // SMALL TRIGGER COLLIDER: Despawns only when the tiny collider touches a wall/floor/obstacle
     private void OnTriggerEnter(Collider other)
     {
         if (!IsServer || hasHit) return;
 
-        // Ignore all trigger colliders (enemy detection zones, other projectile triggers, etc.)
         if (other.isTrigger) return;
-
         if (IsShooter(other.gameObject)) return;
-
         if (TryDamageTarget(other.gameObject)) return;
 
         if (debugHits)
@@ -140,7 +139,7 @@ public class MagicProjectile : NetworkBehaviour
 
     private bool TryDamageTarget(GameObject hitObject)
     {
-        // 1. Check if hit AI Enemy (Campaign Mode)
+        // 1. Enemy Check
         ShootingEnemyAI enemyAI = hitObject.GetComponentInParent<ShootingEnemyAI>();
         if (enemyAI != null)
         {
@@ -152,13 +151,33 @@ public class MagicProjectile : NetworkBehaviour
             return true;
         }
 
-        // 2. Check if hit another Player (Multiplayer Mode)
+        // 2. Player Check
         PlayerHealth playerHealth = hitObject.GetComponentInParent<PlayerHealth>();
         if (playerHealth != null)
         {
             if (debugHits) Debug.Log($"[MagicProjectile] Damaged Player: {playerHealth.name}");
             hasHit = true;
             playerHealth.TakeDamage(damage, shooterNetObj);
+
+            // Apply Knockback and Stun to the hit player
+            PlayerController targetController = hitObject.GetComponentInParent<PlayerController>();
+            if (targetController != null)
+            {
+                Vector3 knockbackDir = (targetController.transform.position - transform.position);
+                knockbackDir.y = 0f;
+
+                // Fallback to projectile's forward direction if directly centered
+                if (knockbackDir.sqrMagnitude < 0.001f)
+                {
+                    knockbackDir = transform.forward;
+                    knockbackDir.y = 0f;
+                }
+                knockbackDir.Normalize();
+
+                Vector3 totalKnockback = (knockbackDir * knockbackForce) + (Vector3.up * knockbackUpwardForce);
+                targetController.ApplyKnockbackAndStun(totalKnockback, stunDuration);
+            }
+
             DespawnProjectile();
             return true;
         }

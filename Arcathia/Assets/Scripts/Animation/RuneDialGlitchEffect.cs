@@ -35,7 +35,7 @@ public class RuneDialGlitchEffect : MonoBehaviour
     public float flickerSpeed = 0.04f;
 
     private RectTransform rectTransform;
-    private Vector2 currentBasePosition; // Captured dynamically so it respects custom HUD layouts!
+    private Vector2 currentBasePosition; 
     private Coroutine glitchLoopCoroutine;
     private bool isGlitching = false;
 
@@ -67,7 +67,7 @@ public class RuneDialGlitchEffect : MonoBehaviour
             glitchLoopCoroutine = null;
         }
 
-        // If disabled mid-shake, restore the custom position immediately
+        
         if (isGlitching && rectTransform != null)
         {
             rectTransform.anchoredPosition = currentBasePosition;
@@ -109,15 +109,14 @@ public class RuneDialGlitchEffect : MonoBehaviour
     {
         isGlitching = true;
 
-        // CRITICAL FIX: Capture wherever the dial is currently positioned right now!
-        // This preserves your custom HUD layout completely.
+        
         currentBasePosition = rectTransform.anchoredPosition;
 
         float elapsed = 0f;
         float flickerTimer = 0f;
         bool showGlitch = true;
 
-        // Set initial glitch sprite immediately
+        
         if (dialImage != null && glitchSprite != null)
         {
             dialImage.sprite = glitchSprite;
@@ -129,11 +128,11 @@ public class RuneDialGlitchEffect : MonoBehaviour
             elapsed += Time.deltaTime;
             flickerTimer += Time.deltaTime;
 
-            // 1. Shake around the CURRENT custom position
+            
             Vector2 randomOffset = Random.insideUnitCircle * shakeStrength;
             rectTransform.anchoredPosition = currentBasePosition + randomOffset;
 
-            // 2. Flicker sprites
+            
             if (flickerTimer >= flickerSpeed)
             {
                 flickerTimer = 0f;
@@ -150,7 +149,7 @@ public class RuneDialGlitchEffect : MonoBehaviour
             yield return null;
         }
 
-        // Return to the custom position and default sprite
+        
         if (rectTransform != null)
         {
             rectTransform.anchoredPosition = currentBasePosition;

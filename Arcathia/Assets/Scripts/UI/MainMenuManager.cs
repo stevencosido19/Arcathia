@@ -45,23 +45,23 @@ public class MainMenuManager : MonoBehaviour
 
     void Start()
     {
-        // Initial panel states
+        
         if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
         if (modeSelectionPanel != null) modeSelectionPanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
 
-        // Bind Main Menu Buttons
+        
         if (startButton != null) startButton.onClick.AddListener(OnStartButtonPressed);
         if (customizeButton != null) customizeButton.onClick.AddListener(OnCustomizeButtonPressed);
         if (settingsButton != null) settingsButton.onClick.AddListener(OnSettingsButtonPressed);
         if (quitButton != null) quitButton.onClick.AddListener(OnQuitButtonPressed);
 
-        // Bind Mode Selection Buttons
+       
         if (campaignButton != null) campaignButton.onClick.AddListener(OnCampaignButtonPressed);
         if (multiplayerButton != null) multiplayerButton.onClick.AddListener(OnMultiplayerButtonPressed);
         if (backButton != null) backButton.onClick.AddListener(OnBackButtonPressed);
 
-        // Bind Settings Panel Buttons
+        
         if (closeSettingsButton != null) closeSettingsButton.onClick.AddListener(OnCloseSettingsPressed);
     }
 
@@ -103,13 +103,13 @@ public class MainMenuManager : MonoBehaviour
         {
             UIPanelPopUp popUp = panelToHide.GetComponent<UIPanelPopUp>();
 
-            // If panel has UIPanelPopUp, play its exit animation and wait
+            
             if (popUp != null)
             {
                 popUp.ClosePanel();
                 yield return new WaitForSecondsRealtime(popUp.closeDuration);
             }
-            // If panel does NOT have UIPanelPopUp, only close it if allowed
+           
             else if (!onlyClosePanelsWithPopUp)
             {
                 panelToHide.SetActive(false);
@@ -117,7 +117,7 @@ public class MainMenuManager : MonoBehaviour
             }
         }
 
-        // Reveal the target panel
+        
         if (panelToShow != null)
         {
             panelToShow.SetActive(true);
@@ -156,14 +156,14 @@ public class MainMenuManager : MonoBehaviour
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             if (transport != null)
             {
-                // Port 7776: Dedicated port for Campaign to prevent conflicts with Multiplayer (7778)
+                
                 transport.SetConnectionData("127.0.0.1", 7776, "127.0.0.1");
             }
 
             if (NetworkManager.Singleton.StartHost())
             {
                 Debug.Log($"[Campaign] Starting Campaign Mode as Host. Loading: {campaignSceneName}");
-                // Netcode handles this scene load; LoadingScreen hooks it automatically
+                
                 NetworkManager.Singleton.SceneManager.LoadScene(campaignSceneName, LoadSceneMode.Single);
             }
             else
@@ -186,7 +186,7 @@ public class MainMenuManager : MonoBehaviour
                 NetworkManager.Singleton.Shutdown();
             }
 
-            // LOADING SCREEN: MainMenu -> MultiplayerLobby
+            
             LoadingScreen.Load(multiplayerLobbySceneName);
         }
     }

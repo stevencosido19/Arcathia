@@ -6,14 +6,14 @@ public class PlayerScoreSlotUI : MonoBehaviour
 {
     [Header("UI References")]
     public Image avatarIcon;
-    public TMP_Text playerNameText; // (Optional) Shows the player's login name
+    public TMP_Text playerNameText; 
     public TMP_Text scoreText;
 
     private PlayerScore boundPlayer;
 
     public void SetupSlot(PlayerScore player, Sprite icon)
     {
-        // Unsubscribe old events if recycled
+        
         if (boundPlayer != null)
         {
             boundPlayer.score.OnValueChanged -= OnScoreChanged;
@@ -22,7 +22,7 @@ public class PlayerScoreSlotUI : MonoBehaviour
         boundPlayer = player;
         transform.localScale = Vector3.one;
 
-        // 1. Setup Avatar Icon
+        
         if (avatarIcon != null)
         {
             if (icon != null)

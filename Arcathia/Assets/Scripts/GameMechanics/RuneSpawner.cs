@@ -18,7 +18,7 @@ public class RuneSpawner : NetworkBehaviour
     public float spawnInterval = 10f;
     public int maxRunesInStage = 5;
 
-    // Track active runes and their associated spawn point transform
+    
     private Dictionary<Transform, GameObject> activeRuneMap = new Dictionary<Transform, GameObject>();
 
     public override void OnNetworkSpawn()
@@ -37,10 +37,10 @@ public class RuneSpawner : NetworkBehaviour
 
         while (true)
         {
-            // Clean up missing/despawned runes from our tracking map
+            
             CleanupDespawnedRunes();
 
-            // Only spawn if below capacity and we have available spawn points
+            
             if (activeRuneMap.Count < maxRunesInStage)
             {
                 SpawnRandomRuneAtFreeLocation();
@@ -70,7 +70,7 @@ public class RuneSpawner : NetworkBehaviour
 
     private void SpawnRandomRuneAtFreeLocation()
     {
-        // 1. Gather all spawn points that DO NOT currently have an active rune
+        
         List<Transform> freeSpawnPoints = new List<Transform>();
 
         foreach (Transform point in spawnPoints)
@@ -81,13 +81,13 @@ public class RuneSpawner : NetworkBehaviour
             }
         }
 
-        // If no empty points are left, skip spawning
+        
         if (freeSpawnPoints.Count == 0) return;
 
-        // 2. Pick a random unoccupied spawn point
+        
         Transform chosenSpawnPoint = freeSpawnPoints[Random.Range(0, freeSpawnPoints.Count)];
 
-        // 3. Select prefab (50/50 Water or Lightning)
+       
         GameObject selectedPrefab = (Random.value > 0.5f) ? waterRunePrefab : lightningRunePrefab;
 
         if (selectedPrefab == null)
@@ -96,10 +96,10 @@ public class RuneSpawner : NetworkBehaviour
             return;
         }
 
-        // 4. Instantiate and Spawn across Network
+        
         GameObject spawnedRune = Instantiate(selectedPrefab, chosenSpawnPoint.position, chosenSpawnPoint.rotation);
 
-        // Mark this spawn point as occupied
+        
         activeRuneMap[chosenSpawnPoint] = spawnedRune;
 
         NetworkObject netObj = spawnedRune.GetComponent<NetworkObject>();

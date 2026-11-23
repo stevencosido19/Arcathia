@@ -8,7 +8,7 @@ public class AppBootstrap : MonoBehaviour
 
     private void Start()
     {
-        // Smoothly loads MainMenu in the background while covered by the loading screen
+        
         LoadingScreen.Load(nextSceneName);
     }
 }

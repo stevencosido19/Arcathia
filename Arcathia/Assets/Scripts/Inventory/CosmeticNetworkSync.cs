@@ -15,7 +15,6 @@ public class CosmeticNetworkSync : NetworkBehaviour
     public Transform robeHolder;
     public Transform wandHolder;
 
-    // NGO requires FixedString32Bytes for string syncing
     private NetworkVariable<FixedString32Bytes> netHat = new NetworkVariable<FixedString32Bytes>(writePerm: NetworkVariableWritePermission.Server);
     private NetworkVariable<FixedString32Bytes> netFace = new NetworkVariable<FixedString32Bytes>(writePerm: NetworkVariableWritePermission.Server);
     private NetworkVariable<FixedString32Bytes> netAccessory = new NetworkVariable<FixedString32Bytes>(writePerm: NetworkVariableWritePermission.Server);
@@ -24,15 +23,16 @@ public class CosmeticNetworkSync : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        netHat.OnValueChanged += (oldVal, newVal) => ApplyCosmetic(hatHolder, newVal.ToString());
-        netFace.OnValueChanged += (oldVal, newVal) => ApplyCosmetic(faceHolder, newVal.ToString());
-        netAccessory.OnValueChanged += (oldVal, newVal) => ApplyCosmetic(accessoryHolder, newVal.ToString());
-        netRobe.OnValueChanged += (oldVal, newVal) => ApplyCosmetic(robeHolder, newVal.ToString());
-        netWand.OnValueChanged += (oldVal, newVal) => ApplyCosmetic(wandHolder, newVal.ToString());
+        // 1. Subscribe to network variable changes
+        netHat.OnValueChanged += OnHatChanged;
+        netFace.OnValueChanged += OnFaceChanged;
+        netAccessory.OnValueChanged += OnAccessoryChanged;
+        netRobe.OnValueChanged += OnRobeChanged;
+        netWand.OnValueChanged += OnWandChanged;
 
         if (IsOwner)
         {
-            // Read local save file and tell the server what we are wearing
+            // Owner loads local save data and tells the server
             PlayerSaveData data = SaveManager.LoadData();
             UpdateCosmeticsServerRpc(
                 data.equippedHat,
@@ -44,7 +44,7 @@ public class CosmeticNetworkSync : NetworkBehaviour
         }
         else
         {
-            // Initial load for non-owners to match current server state
+            // Remote clients apply current values on spawn
             ApplyCosmetic(hatHolder, netHat.Value.ToString());
             ApplyCosmetic(faceHolder, netFace.Value.ToString());
             ApplyCosmetic(accessoryHolder, netAccessory.Value.ToString());
@@ -53,28 +53,48 @@ public class CosmeticNetworkSync : NetworkBehaviour
         }
     }
 
+    public override void OnNetworkDespawn()
+    {
+        // Always unsubscribe to prevent memory leaks and ghost callbacks
+        netHat.OnValueChanged -= OnHatChanged;
+        netFace.OnValueChanged -= OnFaceChanged;
+        netAccessory.OnValueChanged -= OnAccessoryChanged;
+        netRobe.OnValueChanged -= OnRobeChanged;
+        netWand.OnValueChanged -= OnWandChanged;
+    }
+
+    // Callbacks
+    private void OnHatChanged(FixedString32Bytes oldVal, FixedString32Bytes newVal) => ApplyCosmetic(hatHolder, newVal.ToString());
+    private void OnFaceChanged(FixedString32Bytes oldVal, FixedString32Bytes newVal) => ApplyCosmetic(faceHolder, newVal.ToString());
+    private void OnAccessoryChanged(FixedString32Bytes oldVal, FixedString32Bytes newVal) => ApplyCosmetic(accessoryHolder, newVal.ToString());
+    private void OnRobeChanged(FixedString32Bytes oldVal, FixedString32Bytes newVal) => ApplyCosmetic(robeHolder, newVal.ToString());
+    private void OnWandChanged(FixedString32Bytes oldVal, FixedString32Bytes newVal) => ApplyCosmetic(wandHolder, newVal.ToString());
+
     [ServerRpc]
     private void UpdateCosmeticsServerRpc(string hat, string face, string acc, string robe, string wand)
     {
-        netHat.Value = new FixedString32Bytes(hat);
-        netFace.Value = new FixedString32Bytes(face);
-        netAccessory.Value = new FixedString32Bytes(acc);
-        netRobe.Value = new FixedString32Bytes(robe);
-        netWand.Value = new FixedString32Bytes(wand);
+        netHat.Value = new FixedString32Bytes(hat ?? string.Empty);
+        netFace.Value = new FixedString32Bytes(face ?? string.Empty);
+        netAccessory.Value = new FixedString32Bytes(acc ?? string.Empty);
+        netRobe.Value = new FixedString32Bytes(robe ?? string.Empty);
+        netWand.Value = new FixedString32Bytes(wand ?? string.Empty);
     }
 
     private void ApplyCosmetic(Transform holder, string itemID)
     {
-        // Turn everything off first
+        // SAFETY CHECK: Prevents UnassignedReferenceException if a socket is empty
+        if (holder == null) return;
+
+        // Turn off all child meshes under this holder first
         for (int i = 0; i < holder.childCount; i++)
         {
             holder.GetChild(i).gameObject.SetActive(false);
         }
 
-        if (string.IsNullOrEmpty(itemID)) return;
+        if (string.IsNullOrEmpty(itemID) || allItems == null) return;
 
-        CosmeticItem item = allItems.Find(x => x.itemID == itemID);
-        if (item != null && item.modelIndex < holder.childCount)
+        CosmeticItem item = allItems.Find(x => x != null && x.itemID == itemID);
+        if (item != null && item.modelIndex >= 0 && item.modelIndex < holder.childCount)
         {
             GameObject cosmeticObj = holder.GetChild(item.modelIndex).gameObject;
             cosmeticObj.SetActive(true);

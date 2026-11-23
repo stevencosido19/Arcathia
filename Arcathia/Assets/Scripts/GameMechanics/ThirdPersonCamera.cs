@@ -29,7 +29,7 @@ public class ThirdPersonCamera : NetworkBehaviour
     public float screenAssistRadius = 0.20f;
     public float cameraPullSpeed = 4.0f;
 
-    // --- SPECTATING STATE ---
+    
     public bool IsSpectating { get; private set; } = false;
     private Transform defaultOwnerTarget;
     private readonly List<Transform> spectateTargets = new List<Transform>();
@@ -63,7 +63,7 @@ public class ThirdPersonCamera : NetworkBehaviour
         if (touchInput == null)
             touchInput = Object.FindFirstObjectByType<MobileTouchInput>();
 
-        // Cache default target (our player)
+        
         if (target == null)
         {
             target = transform.root;
@@ -93,7 +93,7 @@ public class ThirdPersonCamera : NetworkBehaviour
         currentX += inputDelta.x * rotationSpeed;
         currentY -= inputDelta.y * rotationSpeed;
 
-        // Only use Aim Assist while ALIVE (not while spectating)
+        
         if (!IsSpectating)
         {
             ApplyCameraAimAssist(inputDelta);
@@ -122,14 +122,14 @@ public class ThirdPersonCamera : NetworkBehaviour
         return Vector2.zero;
     }
 
-    // --- SPECTATOR CONTROLS ---
+    
 
     public void StartSpectating(ulong killerNetObjectId = 0)
     {
         IsSpectating = true;
         BuildSpectateList();
 
-        // If a killer exists, try to spectate them first
+        
         if (killerNetObjectId != 0 && NetworkManager.Singleton != null &&
             NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(killerNetObjectId, out NetworkObject killerObj))
         {
@@ -138,7 +138,7 @@ public class ThirdPersonCamera : NetworkBehaviour
             return;
         }
 
-        // Otherwise spectate the first available living player
+        
         if (spectateTargets.Count > 0)
         {
             spectateIndex = 0;
@@ -151,7 +151,7 @@ public class ThirdPersonCamera : NetworkBehaviour
     public void StopSpectating()
     {
         IsSpectating = false;
-        target = defaultOwnerTarget; // Return camera to our own player
+        target = defaultOwnerTarget; 
     }
 
     public void CycleSpectateTarget(int direction)
@@ -172,7 +172,7 @@ public class ThirdPersonCamera : NetworkBehaviour
     {
         spectateTargets.Clear();
 
-        // Find all living players in the match (excluding ourselves)
+        
         PlayerHealth[] allPlayers = Object.FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
         foreach (var p in allPlayers)
         {
@@ -182,7 +182,7 @@ public class ThirdPersonCamera : NetworkBehaviour
             }
         }
 
-        // Fallback for Single-Player Campaign (Spectate active AI enemies if no players exist)
+        
         if (spectateTargets.Count == 0)
         {
             ShootingEnemyAI[] enemies = Object.FindObjectsByType<ShootingEnemyAI>(FindObjectsSortMode.None);
@@ -203,7 +203,7 @@ public class ThirdPersonCamera : NetworkBehaviour
         }
     }
 
-    // --- AIM ASSIST ---
+    
 
     private void ApplyCameraAimAssist(Vector2 playerInput)
     {

@@ -3,9 +3,9 @@ using UnityEngine;
 
 public enum SpellType
 {
-    Fire,       // Addition (+)
-    Water,      // Subtraction (-)
-    Lightning   // Multiplication (*)
+    Fire,       
+    Water,      
+    Lightning   
 }
 
 public class MathEquationGenerator : MonoBehaviour
@@ -17,35 +17,33 @@ public class MathEquationGenerator : MonoBehaviour
         public SpellType spellType;
 
         [Header("Validated Equation Info")]
-        public string questionText; // e.g., "8 + _ = 16"
-        public int correctAnswer;  // e.g., 8
+        public string questionText; 
+        public int correctAnswer;  
 
         [Header("Dial Choices (Must have 4 options)")]
-        public List<int> dialOptions = new List<int>() { 0, 0, 0, 0 }; // 1 correct answer + 3 distractors
+        public List<int> dialOptions = new List<int>() { 0, 0, 0, 0 }; 
 
         [Header("Validation Note")]
         [TextArea(1, 3)]
-        public string professorNote; // Optional note/comment from the professor
+        public string professorNote; 
     }
 
     [System.Serializable]
     public class EquationData
     {
         public SpellType spellType;
-        public string questionText; // e.g., "8 + _ = 16"
-        public int correctAnswer;  // e.g., 8
-        public List<int> dialOptions; // 4 quadrant numbers
+        public string questionText; 
+        public int correctAnswer;  
+        public List<int> dialOptions; 
     }
 
     [Header("Pre-Approved Equation Database")]
     public List<ApprovedEquation> preApprovedDatabase = new List<ApprovedEquation>();
 
-    /// <summary>
-    /// Fetches a random pre-approved equation from the inspector database matching the requested SpellType.
-    /// </summary>
+    
     public EquationData GenerateProblem(SpellType spellType)
     {
-        // 1. Filter database for entries matching the requested spell type
+        
         List<ApprovedEquation> matchingEquations = preApprovedDatabase.FindAll(eq => eq.spellType == spellType);
 
         if (matchingEquations.Count == 0)
@@ -54,25 +52,23 @@ public class MathEquationGenerator : MonoBehaviour
             return null;
         }
 
-        // 2. Pick a random approved equation
+        
         ApprovedEquation selected = matchingEquations[Random.Range(0, matchingEquations.Count)];
 
-        // 3. Construct and format EquationData output
+        
         EquationData data = new EquationData();
         data.spellType = selected.spellType;
         data.questionText = selected.questionText;
         data.correctAnswer = selected.correctAnswer;
 
-        // Clone dial options and shuffle quadrant positions
+        
         data.dialOptions = new List<int>(selected.dialOptions);
         ShuffleList(data.dialOptions);
 
         return data;
     }
 
-    /// <summary>
-    /// Utility to shuffle quadrant positions so the answer moves randomly around the dial.
-    /// </summary>
+    
     private void ShuffleList(List<int> list)
     {
         for (int i = 0; i < list.Count; i++)

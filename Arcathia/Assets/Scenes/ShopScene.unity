@@ -1951,9 +1951,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 149ee856fb8ea664bb6f0df51c4140d1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1060231782}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 149ee856fb8ea664bb6f0df51c4140d1, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1060231784}
   m_SourcePrefab: {fileID: 100100000, guid: 149ee856fb8ea664bb6f0df51c4140d1, type: 3}
 --- !u!4 &1060231779 stripped
 Transform:
@@ -1997,20 +1994,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 298458598531426090, guid: 149ee856fb8ea664bb6f0df51c4140d1, type: 3}
   m_PrefabInstance: {fileID: 1060231778}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1060231784
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1060231781}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c39bc231590c99d4ea6accc2f09e6035, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  characterRootBone: {fileID: 1060231779}
-  robePrefab: {fileID: 8282247041576205419, guid: bfd100ec616c0dd43bd73e33f4a86cd0, type: 3}
 --- !u!1 &1242934872
 GameObject:
   m_ObjectHideFlags: 0

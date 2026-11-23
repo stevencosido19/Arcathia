@@ -11,7 +11,7 @@ public class GameDataManager : MonoBehaviour
     [Header("Default Fallbacks")]
     public string defaultPlayerName = "Hero";
 
-    // Stored in-memory properties
+    
     public string PlayerName { get; private set; }
     public int SelectedAvatarIndex { get; private set; }
 
@@ -34,7 +34,7 @@ public class GameDataManager : MonoBehaviour
         PlayerName = PlayerPrefs.GetString("Arcathia_PlayerName", defaultPlayerName);
         SelectedAvatarIndex = PlayerPrefs.GetInt("Arcathia_AvatarIndex", 0);
 
-        // Clamp index in case availableAvatars list changed
+        
         if (availableAvatars != null && availableAvatars.Length > 0)
         {
             SelectedAvatarIndex = Mathf.Clamp(SelectedAvatarIndex, 0, availableAvatars.Length - 1);

@@ -12,13 +12,13 @@ public class PlayerNetworkSpawner : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        // Start watching for scene changes as soon as this object is spawned
+        
         StartCoroutine(CheckSceneAndSpawnRoutine());
     }
 
     private IEnumerator CheckSceneAndSpawnRoutine()
     {
-        // Continuously check until we enter the gameplay scene AND haven't positioned yet
+        
         while (!hasSpawnedAtPoint)
         {
             string currentScene = SceneManager.GetActiveScene().name;
@@ -29,11 +29,11 @@ public class PlayerNetworkSpawner : NetworkBehaviour
                 {
                     Debug.Log($"<color=yellow>[Spawner] Player detected target scene '{gameplaySceneName}'. Requesting spawn location from server...</color>");
                     RequestSpawnPointServerRpc();
-                    hasSpawnedAtPoint = true; // Prevents multiple requests
+                    hasSpawnedAtPoint = true; 
                 }
             }
 
-            // Wait until next frame to check again
+            
             yield return null;
         }
     }
@@ -77,25 +77,23 @@ public class PlayerNetworkSpawner : NetworkBehaviour
         CharacterController cc = GetComponent<CharacterController>();
         PlayerController playerCtrl = GetComponent<PlayerController>();
 
-        // 1. Disable physics components
+        
         if (cc != null) cc.enabled = false;
         if (playerCtrl != null) playerCtrl.ResetVelocity();
 
-        // 2. Set coordinates directly
+        
         transform.position = targetPosition;
         transform.rotation = targetRotation;
 
         Debug.Log($"<color=cyan>[Spawner SUCCESS] Teleported local owner to {targetPosition}</color>");
 
-        // 3. Wait ONE frame before re-enabling CharacterController so Unity physics syncs the new collision bounds
+        
         yield return new WaitForFixedUpdate();
 
         if (cc != null) cc.enabled = true;
     }
 
-    /// <summary>
-    /// Call this if returning to lobby or restarting to allow re-spawning in future stage loads.
-    /// </summary>
+    
     public void ResetSpawnFlag()
     {
         hasSpawnedAtPoint = false;

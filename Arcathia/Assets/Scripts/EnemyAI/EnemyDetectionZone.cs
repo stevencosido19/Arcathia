@@ -11,13 +11,13 @@ public class EnemyDetectionZone : MonoBehaviour
         parentAI = GetComponentInParent<ShootingEnemyAI>();
         detectionCollider = GetComponent<SphereCollider>();
 
-        // Ensure this collider acts as a trigger
+        
         detectionCollider.isTrigger = true;
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        // Only run logic on the server/host
+        
         if (parentAI == null || !parentAI.IsServer) return;
 
         PlayerController player = other.GetComponentInParent<PlayerController>();

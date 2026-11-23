@@ -12,7 +12,7 @@ public class PlayerFallTeleporter : NetworkBehaviour
 
     private void Update()
     {
-        // Only run position checks on the client who OWNS this player (due to ClientNetworkTransform)
+        
         if (!IsOwner) return;
 
         if (transform.position.y < fallThresholdY && !isTeleporting)
@@ -56,7 +56,7 @@ public class PlayerFallTeleporter : NetworkBehaviour
         CharacterController cc = GetComponent<CharacterController>();
         Rigidbody rb = GetComponent<Rigidbody>();
 
-        // 1. Disable physics movement components
+        
         if (cc != null) cc.enabled = false;
         if (rb != null)
         {
@@ -64,13 +64,13 @@ public class PlayerFallTeleporter : NetworkBehaviour
             rb.angularVelocity = Vector3.zero;
         }
 
-        // 2. Reposition player
+       
         transform.position = targetPosition;
         transform.rotation = targetRotation;
 
         Debug.Log($"<color=green>[FallDetector SUCCESS] Caught player fall! Teleported to {targetPosition}</color>");
 
-        // 3. Wait for physics frame to resync before turning controller back on
+        
         yield return new WaitForFixedUpdate();
 
         if (cc != null) cc.enabled = true;

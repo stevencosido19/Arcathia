@@ -32,7 +32,7 @@ public class CampaignEnemySpawner : MonoBehaviour
 
     private IEnumerator InitializeSpawnerRoutine()
     {
-        // 1. Wait until NetworkManager is active and we are running as Server/Host
+        
         yield return new WaitUntil(() => NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening);
 
         if (!NetworkManager.Singleton.IsServer)
@@ -53,7 +53,7 @@ public class CampaignEnemySpawner : MonoBehaviour
         if (!isSpawningReady) return;
         if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer) return;
 
-        // 1. Stop spawning if the level is already won
+        
         if (HasPlayerWon())
         {
             isSpawningReady = false;
@@ -61,22 +61,22 @@ public class CampaignEnemySpawner : MonoBehaviour
             return;
         }
 
-        // 2. Remove dead/destroyed enemies from our tracking list
+        
         activeEnemies.RemoveAll(enemy => enemy == null || !enemy.activeInHierarchy);
 
-        // 3. Stop if we already spawned the full quota for this stage
+        
         if (totalEnemiesToSpawn > 0 && spawnedCount >= totalEnemiesToSpawn)
         {
             return;
         }
 
-        // 4. Pause if maximum concurrent enemies are currently alive on the field
+        
         if (activeEnemies.Count >= maxEnemiesAlive)
         {
             return;
         }
 
-        // 5. Timer countdown
+        
         spawnTimer += Time.deltaTime;
         if (spawnTimer >= spawnInterval)
         {
@@ -93,13 +93,13 @@ public class CampaignEnemySpawner : MonoBehaviour
             return;
         }
 
-        // Determine spawn coordinates
+        
         Vector3 spawnPos = transform.position;
         Quaternion spawnRot = transform.rotation;
 
         if (spawnPoints != null && spawnPoints.Length > 0)
         {
-            // Pick a non-null spawn point
+            
             List<Transform> validPoints = new List<Transform>();
             foreach (var pt in spawnPoints)
             {
@@ -114,7 +114,7 @@ public class CampaignEnemySpawner : MonoBehaviour
             }
         }
 
-        // Snap to nearest baked NavMesh ground
+        
         if (NavMesh.SamplePosition(spawnPos, out NavMeshHit hit, 10.0f, NavMesh.AllAreas))
         {
             spawnPos = hit.position;
@@ -124,10 +124,10 @@ public class CampaignEnemySpawner : MonoBehaviour
             Debug.LogWarning($"<color=orange>[EnemySpawner] No NavMesh found near {spawnPos}! Ensure NavMesh is baked in this scene.</color>");
         }
 
-        // 1. Instantiate the enemy on the server
+        
         GameObject enemyInstance = Instantiate(enemyPrefab, spawnPos, spawnRot);
 
-        // 2. Replicate across Netcode
+        
         NetworkObject netObj = enemyInstance.GetComponent<NetworkObject>();
         if (netObj != null)
         {
