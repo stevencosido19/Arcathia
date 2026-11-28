@@ -4,9 +4,17 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 
-public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler
+public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler, IBeginDragHandler
 {
     public enum BookMode { Spells, PowerUps }
+
+    public enum TutorialInputMode
+    {
+        Normal,
+        ScrollOnly,
+        RequireRightAnswer,
+        RequireWrongAnswer
+    }
 
     [Header("Mode & Bookmark Toggle")]
     public BookMode currentBookMode = BookMode.Spells;
@@ -38,6 +46,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     public float swipeThreshold = 50f;
     private Vector2 touchStartPos;
     private bool swipeHandled = false;
+    private bool pointerDownReceived = false;
 
     [Header("Settings & Timers")]
     public float fireCooldownTime = 10.0f;
@@ -53,7 +62,6 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     [Header("Dependencies")]
     public MathEquationGenerator equationGenerator;
 
-    
     private PlayerPowerUpHandler localPowerUpHandler;
     private PlayerMagicNetwork localMagicNetwork;
     private PlayerHealth localPlayerHealth;
@@ -64,8 +72,8 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     private static readonly int SpellTypeCount = System.Enum.GetValues(typeof(SpellType)).Length;
 
     private SpellType currentSpellType = SpellType.Fire;
+    private TutorialInputMode tutorialMode = TutorialInputMode.Normal;
 
-    
     private readonly Dictionary<SpellType, HashSet<int>> disabledQuadrantsPerSpell = new Dictionary<SpellType, HashSet<int>>()
     {
         { SpellType.Fire, new HashSet<int>() },
@@ -87,6 +95,47 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         }
         return set;
     }
+
+    public void SetTutorialMode(TutorialInputMode mode)
+    {
+        tutorialMode = mode;
+        UpdateDialState();
+    }
+
+    public void SetTutorialScrollOnly(bool active)
+    {
+        SetTutorialMode(active ? TutorialInputMode.ScrollOnly : TutorialInputMode.Normal);
+    }
+
+    /// <summary>
+    /// Ensures the currently viewed Spell page has an active equation ready (skips cooldowns/empty queues during tutorial).
+    /// </summary>
+    public void PrepareTutorialEquation()
+    {
+        currentBookMode = BookMode.Spells;
+
+        if (currentSpellType == SpellType.Fire)
+        {
+            if (fireCooldownTimer > 0f || currentFireEquation == null)
+            {
+                fireCooldownTimer = 0f;
+                FetchNewFireProblem();
+            }
+        }
+        else if (currentSpellType == SpellType.Water && waterRuneQueue.Count == 0)
+        {
+            AddRuneToInventory(SpellType.Water);
+        }
+        else if (currentSpellType == SpellType.Lightning && lightningRuneQueue.Count == 0)
+        {
+            AddRuneToInventory(SpellType.Lightning);
+        }
+
+        GetDisabledIndices(currentSpellType).Clear();
+        UpdateBookUI();
+    }
+
+    public SpellType GetCurrentSpellType() => currentSpellType;
 
     void Start()
     {
@@ -139,8 +188,9 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void ToggleBookMode()
     {
-        if (IsMatchOver()) return;
-        if (HUDLayoutManager.IsLayoutEditing) return; 
+        if (IsMatchOver() || tutorialMode != TutorialInputMode.Normal) return;
+        if (HUDLayoutManager.IsLayoutEditing) return;
+
         currentBookMode = (currentBookMode == BookMode.Spells) ? BookMode.PowerUps : BookMode.Spells;
         UpdateBookUI();
     }
@@ -164,7 +214,6 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         UpdateBookUI();
     }
 
-    
     private void InitializeAmmoFills()
     {
         SetupAmmoFill(fireAmmoFill, "fireAmmoFill");
@@ -305,12 +354,11 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         _ => "NONE"
     };
 
-    
-
     public void OnPointerDown(PointerEventData eventData)
     {
         if (IsMatchOver()) return;
 
+        pointerDownReceived = true;
         touchStartPos = eventData.position;
         swipeHandled = false;
 
@@ -326,9 +374,19 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         }
     }
 
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        if (IsMatchOver() || HUDLayoutManager.IsLayoutEditing) return;
+
+        if (!pointerDownReceived)
+        {
+            touchStartPos = eventData.position;
+            swipeHandled = false;
+        }
+    }
+
     public void OnDrag(PointerEventData eventData)
     {
-        
         if (IsMatchOver() || HUDLayoutManager.IsLayoutEditing || swipeHandled) return;
 
         Vector2 dragDelta = eventData.position - touchStartPos;
@@ -346,6 +404,7 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void OnPointerUp(PointerEventData eventData)
     {
+        pointerDownReceived = false;
         swipeHandled = false;
     }
 
@@ -361,7 +420,17 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
             currentIndex = (currentIndex + direction + totalTypes) % totalTypes;
             currentSpellType = (SpellType)currentIndex;
 
-            UpdateBookUI();
+            // Keep equations available if the player scrolls during the answer tutorials
+            if (tutorialMode == TutorialInputMode.RequireRightAnswer || tutorialMode == TutorialInputMode.RequireWrongAnswer)
+            {
+                PrepareTutorialEquation();
+            }
+            else
+            {
+                UpdateBookUI();
+            }
+
+            TutorialManager.Instance?.NotifySpellbookScrolled(currentSpellType);
         }
         else if (currentBookMode == BookMode.PowerUps)
         {
@@ -376,8 +445,8 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     private void OnSpellbookDoubleTapped()
     {
-        if (IsMatchOver()) return;
-        if (HUDLayoutManager.IsLayoutEditing) return; 
+        if (IsMatchOver() || tutorialMode != TutorialInputMode.Normal) return;
+        if (HUDLayoutManager.IsLayoutEditing) return;
 
         if (currentBookMode == BookMode.PowerUps)
         {
@@ -388,8 +457,6 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
             }
         }
     }
-
-    
 
     public void ApplyRuneLensEffect()
     {
@@ -422,8 +489,6 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
         UpdateBookUI();
     }
-
-    
 
     private void FetchNewFireProblem()
     {
@@ -488,8 +553,8 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     private void OnQuadrantSelected(int index)
     {
-        if (IsMatchOver()) return;
-        if (HUDLayoutManager.IsLayoutEditing) return; 
+        if (IsMatchOver() || tutorialMode == TutorialInputMode.ScrollOnly) return;
+        if (HUDLayoutManager.IsLayoutEditing) return;
 
         HashSet<int> currentDisabled = GetDisabledIndices(currentSpellType);
 
@@ -509,8 +574,25 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
         if (currentEq == null || currentEq.dialOptions == null || index >= currentEq.dialOptions.Count) return;
 
         int selectedValue = currentEq.dialOptions[index];
+        bool isCorrect = (selectedValue == currentEq.correctAnswer);
 
-        if (selectedValue == currentEq.correctAnswer)
+        // --- TUTORIAL GUARD: Require Right Answer ---
+        if (tutorialMode == TutorialInputMode.RequireRightAnswer && !isCorrect)
+        {
+            // Cross out the wrong button gently without hurting player or losing the rune
+            currentDisabled.Add(index);
+            UpdateBookUI();
+            return;
+        }
+
+        // --- TUTORIAL GUARD: Require Wrong Answer ---
+        if (tutorialMode == TutorialInputMode.RequireWrongAnswer && isCorrect)
+        {
+            // Ignore right answers until they tap a wrong one to see backfire damage
+            return;
+        }
+
+        if (isCorrect)
         {
             PlayerMagicNetwork localPlayer = GetLocalPlayerMagic();
             if (localPlayer != null) localPlayer.AddSpellAmmo(currentSpellType, 1);
@@ -522,6 +604,11 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
             else if (currentSpellType == SpellType.Lightning) lightningRuneQueue.Dequeue();
 
             UpdateBookUI();
+
+            if (tutorialMode == TutorialInputMode.RequireRightAnswer)
+            {
+                TutorialManager.Instance?.NotifyRightAnswerSelected();
+            }
         }
         else
         {
@@ -535,13 +622,18 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
             else if (currentSpellType == SpellType.Lightning && lightningRuneQueue.Count > 0) lightningRuneQueue.Dequeue();
 
             UpdateBookUI();
+
+            if (tutorialMode == TutorialInputMode.RequireWrongAnswer)
+            {
+                TutorialManager.Instance?.NotifyWrongAnswerSelected();
+            }
         }
     }
 
     private void OnAttackButtonPressed()
     {
-        if (IsMatchOver()) return;
-        if (HUDLayoutManager.IsLayoutEditing) return; 
+        if (IsMatchOver() || tutorialMode != TutorialInputMode.Normal) return;
+        if (HUDLayoutManager.IsLayoutEditing) return;
 
         PlayerMagicNetwork localPlayer = GetLocalPlayerMagic();
         if (localPlayer != null)
@@ -576,7 +668,10 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
         PlayerMagicNetwork localPlayer = GetLocalPlayerMagic(true);
         bool hasAmmo = localPlayer != null && localPlayer.HasAmmo(currentSpellType);
-        if (attackButton != null) attackButton.interactable = hasAmmo;
+        if (attackButton != null)
+        {
+            attackButton.interactable = hasAmmo && (tutorialMode == TutorialInputMode.Normal);
+        }
 
         if (dialCooldownFillOverlay != null)
         {
@@ -585,8 +680,6 @@ public class SpellbookUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
             dialCooldownFillOverlay.fillAmount = isFireCooldown ? (fireCooldownTimer / fireCooldownTime) : 0f;
         }
     }
-
-    
 
     private PlayerMagicNetwork GetLocalPlayerMagic(bool throttled = false)
     {

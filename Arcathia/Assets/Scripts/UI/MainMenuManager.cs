@@ -22,6 +22,7 @@ public class MainMenuManager : MonoBehaviour
     [Header("Mode Selection Buttons")]
     public Button campaignButton;
     public Button multiplayerButton;
+    public Button tutorialButton; // <--- Added Tutorial Button
     public Button backButton;
 
     [Header("Settings Buttons")]
@@ -39,29 +40,34 @@ public class MainMenuManager : MonoBehaviour
     [Header("Scene Build Settings Names")]
     public string campaignSceneName = "CampaignStage1";
     public string multiplayerLobbySceneName = "MultiplayerLobby";
+    public string tutorialSceneName = "TutorialScene"; // <--- Added Tutorial Scene Name
     public string shopSceneName = "ShopScene";
+
+    [Header("Local Ports")]
+    [Tooltip("Port used for local Tutorial host.")]
+    public ushort tutorialPort = 7775;
 
     private bool isTransitioning = false;
 
     void Start()
     {
-        
         if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
         if (modeSelectionPanel != null) modeSelectionPanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
 
-        
+        // Main Menu
         if (startButton != null) startButton.onClick.AddListener(OnStartButtonPressed);
         if (customizeButton != null) customizeButton.onClick.AddListener(OnCustomizeButtonPressed);
         if (settingsButton != null) settingsButton.onClick.AddListener(OnSettingsButtonPressed);
         if (quitButton != null) quitButton.onClick.AddListener(OnQuitButtonPressed);
 
-       
+        // Mode Selection
         if (campaignButton != null) campaignButton.onClick.AddListener(OnCampaignButtonPressed);
         if (multiplayerButton != null) multiplayerButton.onClick.AddListener(OnMultiplayerButtonPressed);
+        if (tutorialButton != null) tutorialButton.onClick.AddListener(OnTutorialButtonPressed); // <--- Bound Listener
         if (backButton != null) backButton.onClick.AddListener(OnBackButtonPressed);
 
-        
+        // Settings
         if (closeSettingsButton != null) closeSettingsButton.onClick.AddListener(OnCloseSettingsPressed);
     }
 
@@ -103,13 +109,11 @@ public class MainMenuManager : MonoBehaviour
         {
             UIPanelPopUp popUp = panelToHide.GetComponent<UIPanelPopUp>();
 
-            
             if (popUp != null)
             {
                 popUp.ClosePanel();
                 yield return new WaitForSecondsRealtime(popUp.closeDuration);
             }
-           
             else if (!onlyClosePanelsWithPopUp)
             {
                 panelToHide.SetActive(false);
@@ -117,7 +121,6 @@ public class MainMenuManager : MonoBehaviour
             }
         }
 
-        
         if (panelToShow != null)
         {
             panelToShow.SetActive(true);
@@ -151,29 +154,49 @@ public class MainMenuManager : MonoBehaviour
     {
         if (string.IsNullOrEmpty(campaignSceneName)) return;
 
+        StartLocalSession(campaignSceneName, 7776, "Campaign");
+    }
+
+    private void OnTutorialButtonPressed()
+    {
+        if (string.IsNullOrEmpty(tutorialSceneName)) return;
+
+        StartLocalSession(tutorialSceneName, tutorialPort, "Tutorial");
+    }
+
+    /// <summary>
+    /// Starts a local single-player host (127.0.0.1) so Netcode spawns the player prefab with full authority.
+    /// </summary>
+    private void StartLocalSession(string sceneName, ushort port, string sessionTag)
+    {
         if (NetworkManager.Singleton != null)
         {
+            // Shut down any stale session before starting anew
+            if (NetworkManager.Singleton.IsListening)
+            {
+                NetworkManager.Singleton.Shutdown();
+            }
+
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             if (transport != null)
             {
-                
-                transport.SetConnectionData("127.0.0.1", 7776, "127.0.0.1");
+                // Local loopback only
+                transport.SetConnectionData("127.0.0.1", port, "127.0.0.1");
             }
 
             if (NetworkManager.Singleton.StartHost())
             {
-                Debug.Log($"[Campaign] Starting Campaign Mode as Host. Loading: {campaignSceneName}");
-                
-                NetworkManager.Singleton.SceneManager.LoadScene(campaignSceneName, LoadSceneMode.Single);
+                Debug.Log($"[{sessionTag}] Starting as Local Host. Loading: {sceneName}");
+                NetworkManager.Singleton.SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
             }
             else
             {
-                Debug.LogError("[Campaign] Failed to start local Host for Campaign!");
+                Debug.LogError($"[{sessionTag}] Failed to start local Host for {sceneName}!");
             }
         }
         else
         {
-            Debug.LogError("[MainMenu] NetworkManager was not found! Make sure the NetworkManager prefab is in the MainMenu scene.");
+            Debug.LogError("[MainMenu] NetworkManager was not found! Make sure the NetworkManager prefab is present.");
         }
     }
 
@@ -186,7 +209,6 @@ public class MainMenuManager : MonoBehaviour
                 NetworkManager.Singleton.Shutdown();
             }
 
-            
             LoadingScreen.Load(multiplayerLobbySceneName);
         }
     }

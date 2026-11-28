@@ -21,6 +21,10 @@ public class PlayerHealth : NetworkBehaviour
     [Tooltip("If you have a child mesh container, assign it here. If left empty, it safely hides all mesh renderers.")]
     public GameObject characterModelRoot;
 
+    [Header("Damage Feedback UI (Optional)")]
+    [Tooltip("Auto-detected if inside Player Prefab, or uses DamageFeedbackUI.Instance in the Scene.")]
+    public DamageFeedbackUI localDamageFeedback;
+
     public NetworkVariable<bool> isDead = new NetworkVariable<bool>(
         false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
@@ -35,6 +39,11 @@ public class PlayerHealth : NetworkBehaviour
         characterController = GetComponent<CharacterController>();
         playerCollider = GetComponent<Collider>();
         playerAnimator = GetComponentInChildren<Animator>();
+
+        if (localDamageFeedback == null)
+        {
+            localDamageFeedback = GetComponentInChildren<DamageFeedbackUI>(true);
+        }
     }
 
     public override void OnNetworkSpawn()
@@ -56,7 +65,6 @@ public class PlayerHealth : NetworkBehaviour
     {
         if (!IsServer || isDead.Value) return;
 
-        
         if (powerUpHandler != null && powerUpHandler.isPrismBarrierActive.Value)
         {
             powerUpHandler.isPrismBarrierActive.Value = false;
@@ -68,7 +76,9 @@ public class PlayerHealth : NetworkBehaviour
         string attackerName = attacker != null ? attacker.name : "Environment/Self";
         Debug.Log($"[PlayerHealth] {gameObject.name} took {damage} damage from {attackerName}. Current HP: {currentHealth.Value}");
 
-        
+        // Trigger red screen fade feedback ONLY for the damaged player's screen
+        ShowDamageFeedbackClientRpc();
+
         if (currentHealth.Value > 0)
         {
             PlayDamageAnimationClientRpc();
@@ -77,6 +87,21 @@ public class PlayerHealth : NetworkBehaviour
         if (currentHealth.Value <= 0)
         {
             Die(attacker);
+        }
+    }
+
+    [ClientRpc]
+    private void ShowDamageFeedbackClientRpc()
+    {
+        if (!IsOwner) return;
+
+        if (localDamageFeedback != null)
+        {
+            localDamageFeedback.TriggerDamageFlash();
+        }
+        else if (DamageFeedbackUI.Instance != null)
+        {
+            DamageFeedbackUI.Instance.TriggerDamageFlash();
         }
     }
 
@@ -182,6 +207,15 @@ public class PlayerHealth : NetworkBehaviour
 
         if (IsOwner)
         {
+            if (localDamageFeedback != null)
+            {
+                localDamageFeedback.HideImmediate();
+            }
+            else if (DamageFeedbackUI.Instance != null)
+            {
+                DamageFeedbackUI.Instance.HideImmediate();
+            }
+
             if (DeathScreenUI.Instance != null)
             {
                 DeathScreenUI.Instance.HideDeathScreen();

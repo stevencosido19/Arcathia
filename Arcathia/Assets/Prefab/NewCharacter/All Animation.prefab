@@ -220,7 +220,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   ShowTopMostFoldoutHeaderGroup: 1
   target: {fileID: 8634105201656578145}
-  offset: {x: 0, y: 5, z: -8}
+  offset: {x: 0, y: 5.5, z: -10}
   touchInput: {fileID: 2676420533537128305}
   rotationSpeed: 0.5
   minVerticalAngle: -40
@@ -1331,7 +1331,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerFallTeleporter
   ShowTopMostFoldoutHeaderGroup: 1
-  fallThresholdY: -10
+  fallThresholdY: -30
 --- !u!114 &3311296719463549659
 MonoBehaviour:
   m_ObjectHideFlags: 0

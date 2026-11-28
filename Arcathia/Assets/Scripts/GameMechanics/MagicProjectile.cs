@@ -23,6 +23,23 @@ public class MagicProjectile : NetworkBehaviour
     [Tooltip("Big radius used ONLY to damage Players & Enemies (ignores walls/ground).")]
     public float damageRadius = 0.65f;
 
+    [Header("Audio Settings")]
+    [Tooltip("Sound played when the spell is cast/launched.")]
+    public AudioClip launchSound;
+    [Range(0f, 1f)] public float launchVolume = 0.8f;
+
+    [Tooltip("Sound played when the spell hits a player, enemy, target, or wall.")]
+    public AudioClip hitSound;
+    [Range(0f, 1f)] public float hitVolume = 0.9f;
+
+    [Tooltip("0 = 2D (always full volume), 1 = 3D positional. 0.65 works great for third-person cameras.")]
+    [Range(0f, 1f)] public float spatialBlend = 0.65f;
+    public float minHearDistance = 8f;
+    public float maxHearDistance = 45f;
+
+    [Tooltip("Randomizes pitch slightly so rapid shots don't sound repetitive.")]
+    [Range(0f, 0.25f)] public float pitchVariation = 0.08f;
+
     public bool debugHits = true;
 
     private NetworkObject shooterNetObj;
@@ -58,6 +75,9 @@ public class MagicProjectile : NetworkBehaviour
             rb.angularVelocity = Vector3.zero;
             rb.linearVelocity = transform.forward * speed;
         }
+
+        // Plays on all clients automatically when the projectile spawns
+        PlayClip(launchSound, transform.position, launchVolume);
 
         if (IsServer)
         {
@@ -115,6 +135,7 @@ public class MagicProjectile : NetworkBehaviour
         }
 
         hasHit = true;
+        PlayHitSoundClientRpc(transform.position);
         DespawnProjectile();
     }
 
@@ -147,6 +168,7 @@ public class MagicProjectile : NetworkBehaviour
             hasHit = true;
             PlayerScore attackerScore = (shooterNetObj != null) ? shooterNetObj.GetComponent<PlayerScore>() : null;
             enemyAI.TakeDamage(damage, attackerScore);
+            PlayHitSoundClientRpc(transform.position);
             DespawnProjectile();
             return true;
         }
@@ -166,7 +188,6 @@ public class MagicProjectile : NetworkBehaviour
                 Vector3 knockbackDir = (targetController.transform.position - transform.position);
                 knockbackDir.y = 0f;
 
-                // Fallback to projectile's forward direction if directly centered
                 if (knockbackDir.sqrMagnitude < 0.001f)
                 {
                     knockbackDir = transform.forward;
@@ -178,11 +199,50 @@ public class MagicProjectile : NetworkBehaviour
                 targetController.ApplyKnockbackAndStun(totalKnockback, stunDuration);
             }
 
+            PlayHitSoundClientRpc(transform.position);
+            DespawnProjectile();
+            return true;
+        }
+
+        // 3. Tutorial Target Check
+        TutorialTarget tutorialTarget = hitObject.GetComponentInParent<TutorialTarget>();
+        if (tutorialTarget != null)
+        {
+            if (debugHits) Debug.Log($"[MagicProjectile] Hit Tutorial Target: {tutorialTarget.name}");
+            hasHit = true;
+            tutorialTarget.OnHitByMagic();
+            PlayHitSoundClientRpc(transform.position);
             DespawnProjectile();
             return true;
         }
 
         return false;
+    }
+
+    [ClientRpc]
+    private void PlayHitSoundClientRpc(Vector3 hitPosition)
+    {
+        PlayClip(hitSound, hitPosition, hitVolume);
+    }
+
+    private void PlayClip(AudioClip clip, Vector3 position, float volume)
+    {
+        if (clip == null) return;
+
+        GameObject audioObj = new GameObject("ProjectileSFX");
+        audioObj.transform.position = position;
+
+        AudioSource source = audioObj.AddComponent<AudioSource>();
+        source.clip = clip;
+        source.volume = volume;
+        source.spatialBlend = spatialBlend;
+        source.minDistance = minHearDistance;
+        source.maxDistance = maxHearDistance;
+        source.rolloffMode = AudioRolloffMode.Linear;
+        source.pitch = Random.Range(1f - pitchVariation, 1f + pitchVariation);
+        source.Play();
+
+        Destroy(audioObj, clip.length / Mathf.Max(0.1f, source.pitch) + 0.1f);
     }
 
     private void DespawnProjectile()

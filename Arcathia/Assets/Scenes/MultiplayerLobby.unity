@@ -257,8 +257,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: MULTIPLAYER LOBBY
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
+  m_sharedMaterial: {fileID: -3380395713919920757, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -292,7 +292,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 256
   m_textAlignment: 65535
-  m_characterSpacing: 0
+  m_characterSpacing: 20
   m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
@@ -347,6 +347,7 @@ GameObject:
   - component: {fileID: 430790415}
   - component: {fileID: 430790414}
   - component: {fileID: 430790413}
+  - component: {fileID: 430790416}
   m_Layer: 5
   m_Name: JoinButton
   m_TagString: Untagged
@@ -431,7 +432,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2752458, g: 0, b: 0.6226415, a: 1}
+  m_Color: {r: 0.2752458, g: 0, b: 0.6226415, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -456,6 +457,31 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 430790411}
   m_CullTransparentMesh: 1
+--- !u!114 &430790416
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 430790411}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a66a42165a61ee74bb075d5ed5e65f97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HoverButtonEffect
+  hoverScaleMultiplier: 1.12
+  scaleSpeed: 12
+  shakeStrength: 3.5
+  shakeSpeed: 35
+  clickSound: {fileID: 8300000, guid: ba072e66300f08643909b9d30c05f29b, type: 3}
+  clickVolume: 1
+  hoverSound: {fileID: 0}
+  hoverVolume: 0.4
+  triggerMode: 0
+  clipStartOffset: 0.15
+  soundDelay: 0
+  pitch: 1
+  showDebugLogs: 0
 --- !u!1 &451210863
 GameObject:
   m_ObjectHideFlags: 0
@@ -1084,7 +1110,7 @@ RectTransform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1456391235}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1106,15 +1132,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0, b: 0, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: 949e7a4d7deeef14aaa6341c976759cc, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -1190,8 +1216,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: MainMenu
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
+  m_sharedMaterial: {fileID: -3380395713919920757, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1215,8 +1241,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 50
-  m_fontSizeBase: 50
+  m_fontSize: 55
+  m_fontSizeBase: 55
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1225,7 +1251,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 0
+  m_characterSpacing: 10
   m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
@@ -1268,6 +1294,143 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 775879015}
   m_CullTransparentMesh: 1
+--- !u!1 &982322096
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 982322100}
+  - component: {fileID: 982322099}
+  - component: {fileID: 982322098}
+  - component: {fileID: 982322097}
+  m_Layer: 0
+  m_Name: Camera
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &982322097
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 982322096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
+--- !u!81 &982322098
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 982322096}
+  m_Enabled: 1
+--- !u!20 &982322099
+Camera:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 982322096}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_ClearFlags: 1
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_projectionMatrixMode: 1
+  m_GateFitMode: 2
+  m_FOVAxisMode: 0
+  m_Iso: 200
+  m_ShutterSpeed: 0.005
+  m_Aperture: 16
+  m_FocusDistance: 10
+  m_FocalLength: 50
+  m_BladeCount: 5
+  m_Curvature: {x: 2, y: 11}
+  m_BarrelClipping: 0.25
+  m_Anamorphism: 0
+  m_SensorSize: {x: 36, y: 24}
+  m_LensShift: {x: 0, y: 0}
+  m_NormalizedViewPortRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+  near clip plane: 0.3
+  far clip plane: 1000
+  field of view: 60
+  orthographic: 0
+  orthographic size: 5
+  m_Depth: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingPath: -1
+  m_TargetTexture: {fileID: 0}
+  m_TargetDisplay: 0
+  m_TargetEye: 3
+  m_HDR: 1
+  m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
+  m_ForceIntoRT: 0
+  m_OcclusionCulling: 1
+  m_StereoConvergence: 10
+  m_StereoSeparation: 0.022
+--- !u!4 &982322100
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 982322096}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1041797486
 GameObject:
   m_ObjectHideFlags: 0
@@ -1286,7 +1449,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1041797487
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1324,7 +1487,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0, b: 0, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.80784315}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1453,6 +1616,7 @@ GameObject:
   - component: {fileID: 1091151040}
   - component: {fileID: 1091151039}
   - component: {fileID: 1091151038}
+  - component: {fileID: 1091151042}
   m_Layer: 5
   m_Name: LeaveRoomButton
   m_TagString: Untagged
@@ -1517,7 +1681,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2752458, g: 0, b: 0.6226415, a: 1}
+  m_Color: {r: 0.2752458, g: 0, b: 0.6226415, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1560,8 +1724,33 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 69}
-  m_SizeDelta: {x: 300, y: 80}
+  m_SizeDelta: {x: 314.58, y: 80}
   m_Pivot: {x: 0.5, y: 0}
+--- !u!114 &1091151042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1091151037}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a66a42165a61ee74bb075d5ed5e65f97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HoverButtonEffect
+  hoverScaleMultiplier: 1.12
+  scaleSpeed: 12
+  shakeStrength: 3.5
+  shakeSpeed: 35
+  clickSound: {fileID: 8300000, guid: ba072e66300f08643909b9d30c05f29b, type: 3}
+  clickVolume: 1
+  hoverSound: {fileID: 0}
+  hoverVolume: 0.4
+  triggerMode: 0
+  clipStartOffset: 0.15
+  soundDelay: 0
+  pitch: 1
+  showDebugLogs: 0
 --- !u!1 &1184169787
 GameObject:
   m_ObjectHideFlags: 0
@@ -1629,8 +1818,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Status
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
+  m_sharedMaterial: {fileID: -3380395713919920757, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1654,8 +1843,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24
-  m_fontSizeBase: 24
+  m_fontSize: 34
+  m_fontSizeBase: 34
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1664,7 +1853,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 256
   m_textAlignment: 65535
-  m_characterSpacing: 0
+  m_characterSpacing: 20
   m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
@@ -2002,6 +2191,7 @@ GameObject:
   - component: {fileID: 1530513105}
   - component: {fileID: 1530513104}
   - component: {fileID: 1530513103}
+  - component: {fileID: 1530513106}
   m_Layer: 5
   m_Name: HostButton
   m_TagString: Untagged
@@ -2086,7 +2276,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2752458, g: 0, b: 0.6226415, a: 1}
+  m_Color: {r: 0.2752458, g: 0, b: 0.6226415, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2111,6 +2301,31 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1530513101}
   m_CullTransparentMesh: 1
+--- !u!114 &1530513106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1530513101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a66a42165a61ee74bb075d5ed5e65f97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HoverButtonEffect
+  hoverScaleMultiplier: 1.12
+  scaleSpeed: 12
+  shakeStrength: 3.5
+  shakeSpeed: 35
+  clickSound: {fileID: 8300000, guid: ba072e66300f08643909b9d30c05f29b, type: 3}
+  clickVolume: 1
+  hoverSound: {fileID: 0}
+  hoverVolume: 0.4
+  triggerMode: 0
+  clipStartOffset: 0.15
+  soundDelay: 0
+  pitch: 1
+  showDebugLogs: 1
 --- !u!1 &1643146732
 GameObject:
   m_ObjectHideFlags: 0
@@ -2123,6 +2338,7 @@ GameObject:
   - component: {fileID: 1643146735}
   - component: {fileID: 1643146734}
   - component: {fileID: 1643146733}
+  - component: {fileID: 1643146737}
   m_Layer: 5
   m_Name: BackToMM
   m_TagString: Untagged
@@ -2187,7 +2403,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2752458, g: 0, b: 0.6226415, a: 1}
+  m_Color: {r: 0.2752458, g: 0, b: 0.6226415, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2232,6 +2448,31 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 69}
   m_SizeDelta: {x: 300, y: 80}
   m_Pivot: {x: 0.5, y: 0}
+--- !u!114 &1643146737
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1643146732}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a66a42165a61ee74bb075d5ed5e65f97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HoverButtonEffect
+  hoverScaleMultiplier: 1.12
+  scaleSpeed: 12
+  shakeStrength: 3.5
+  shakeSpeed: 35
+  clickSound: {fileID: 8300000, guid: ba072e66300f08643909b9d30c05f29b, type: 3}
+  clickVolume: 1
+  hoverSound: {fileID: 0}
+  hoverVolume: 0.4
+  triggerMode: 0
+  clipStartOffset: 0.15
+  soundDelay: 0
+  pitch: 1
+  showDebugLogs: 0
 --- !u!1 &1663988501
 GameObject:
   m_ObjectHideFlags: 0
@@ -2291,8 +2532,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Leave Room
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
+  m_sharedMaterial: {fileID: -3380395713919920757, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2316,8 +2557,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 45
-  m_fontSizeBase: 45
+  m_fontSize: 60
+  m_fontSizeBase: 60
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -2326,7 +2567,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 0
+  m_characterSpacing: 10
   m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
@@ -2420,7 +2661,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2735849, g: 0.2735849, b: 0.2735849, a: 0.392}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.79607844}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2504,8 +2745,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: HOST
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
+  m_sharedMaterial: {fileID: -3380395713919920757, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2539,7 +2780,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 0
+  m_characterSpacing: 10
   m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
@@ -2702,15 +2943,18 @@ MonoBehaviour:
   roomPanel: {fileID: 1041797486}
   hostButton: {fileID: 1530513103}
   joinButton: {fileID: 430790413}
+  cancelJoinButton: {fileID: 0}
   ipInputField: {fileID: 451210865}
   statusText: {fileID: 1184169790}
   backToMainMenuButton: {fileID: 1643146733}
   hostIpDisplayText: {fileID: 1420717479}
+  copyIpButton: {fileID: 0}
   playerListText: {fileID: 2135686529}
   startMatchButton: {fileID: 1957613126}
   leaveRoomButton: {fileID: 1091151038}
   mainGameStageScene: MFireStage
   defaultPort: 7777
+  connectTimeoutSeconds: 8
 --- !u!1 &1847647298
 GameObject:
   m_ObjectHideFlags: 0
@@ -2860,6 +3104,7 @@ GameObject:
   - component: {fileID: 1957613125}
   - component: {fileID: 1957613124}
   - component: {fileID: 1957613126}
+  - component: {fileID: 1957613127}
   m_Layer: 5
   m_Name: StartButton
   m_TagString: Untagged
@@ -2900,7 +3145,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2752458, g: 0, b: 0.6226415, a: 1}
+  m_Color: {r: 0.2752458, g: 0, b: 0.6226415, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -2969,6 +3214,31 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1957613127
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1957613122}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a66a42165a61ee74bb075d5ed5e65f97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HoverButtonEffect
+  hoverScaleMultiplier: 1.12
+  scaleSpeed: 12
+  shakeStrength: 3.5
+  shakeSpeed: 35
+  clickSound: {fileID: 8300000, guid: ba072e66300f08643909b9d30c05f29b, type: 3}
+  clickVolume: 1
+  hoverSound: {fileID: 0}
+  hoverVolume: 0.4
+  triggerMode: 0
+  clipStartOffset: 0.15
+  soundDelay: 0
+  pitch: 1
+  showDebugLogs: 0
 --- !u!1 &2014228914
 GameObject:
   m_ObjectHideFlags: 0
@@ -3028,8 +3298,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: START
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
+  m_sharedMaterial: {fileID: -3380395713919920757, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3053,8 +3323,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60
-  m_fontSizeBase: 60
+  m_fontSize: 70
+  m_fontSizeBase: 70
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -3165,8 +3435,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: JOIN
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
+  m_sharedMaterial: {fileID: -3380395713919920757, guid: fb6f1390516e3684c829937fc55a1db1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3200,7 +3470,7 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 0
+  m_characterSpacing: 10
   m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
@@ -3261,7 +3531,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2124671980
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3300,7 +3570,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0, b: 0, a: 0.99215686}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.9372549}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3562,3 +3832,4 @@ SceneRoots:
   - {fileID: 102224821}
   - {fileID: 1456391235}
   - {fileID: 1771336178}
+  - {fileID: 982322100}

@@ -14978,6 +14978,14 @@ MonoBehaviour:
   damageHitboxPoint: {fileID: 0}
   damageHitboxOffset: {x: 0, y: 0, z: 3.13}
   damageRadius: 6.88
+  launchSound: {fileID: 8300000, guid: 64d07101c683b914bb37ff61405db8c6, type: 3}
+  launchVolume: 0.2
+  hitSound: {fileID: 0}
+  hitVolume: 0.9
+  spatialBlend: 0.65
+  minHearDistance: 8
+  maxHearDistance: 45
+  pitchVariation: 0.08
   debugHits: 1
 --- !u!135 &2810857499082677825
 SphereCollider:
@@ -14998,7 +15006,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.03
+  m_Radius: 0.005
   m_Center: {x: 0, y: 0, z: 3.5}
 --- !u!1 &8176949760059115874
 GameObject:
